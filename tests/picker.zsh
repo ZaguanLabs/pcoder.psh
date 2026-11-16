@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 # Standalone PTY checks; optional zdraw captures need no Python at test time.
 emulate -R zsh
 setopt extendedglob
@@ -26,7 +26,7 @@ picker_wait() {
 picker_run() {
   trap - EXIT INT TERM
   export TERM=xterm-256color ZCODER_COLOR=$picker_profile NO_COLOR=''
-  exec zsh -df "$picker_root/tests/fixtures/picker_ui.zsh" "$picker_root" "$picker_base" "$picker_backend"
+  exec psh -df "$picker_root/tests/fixtures/picker_ui.zsh" "$picker_root" "$picker_base" "$picker_backend"
 }
 typeset picker_backend picker_profile picker_tty actual baseline stem
 typeset -a picker_stale
@@ -70,7 +70,7 @@ for picker_backend picker_profile in stock auto auto auto auto mono auto basic; 
     elif [[ ! -r $baseline || "$(<"$actual")" != "$(<"$baseline")" ]]; then
       print -ru2 -- "Visual mismatch: $baseline"
       print -ru2 -- "Actual: $actual"
-      print -ru2 -- "Compare with: python3 vendor/zdraw/scripts/visual_diff.py ${(q)baseline} ${(q)actual} --html ${(q)actual}.html"
+      print -ru2 -- "Compare with: python3 <psh-zdraw>/scripts/visual_diff.py ${(q)baseline} ${(q)actual} --html ${(q)actual}.html"
       exit 1
     fi
     (( snapshots++ ))

@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 setopt extendedglob no_monitor no_notify
 zmodload zsh/datetime zsh/system zsh/zselect
 local root="${0:A:h:h:h}" mode="$1" barrier="$2"

@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 
 setopt EXTENDED_GLOB NO_NOMATCH NO_MONITOR NO_NOTIFY NO_CHECK_JOBS NO_HUP
 zmodload zsh/datetime zsh/files zsh/mapfile zsh/system zsh/zselect || exit 1

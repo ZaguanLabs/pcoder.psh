@@ -17,8 +17,6 @@ zcoder_curses_features() {
 
 zcoder_curses_load() {
   emulate -L zsh
-  local root="${1:-$ZCODER_DIR}/vendor/zdraw/.build"
-  local signature="$ZSH_VERSION:$ZSH_PATCHLEVEL:$MACHTYPE:$OSTYPE:$HOST"
   local policy=${ZCODER_CURSES:-auto}
   case "$policy" in
     auto|stock) ;;
@@ -37,24 +35,10 @@ zcoder_curses_load() {
     ZCODER_CURSES_BACKEND=preloaded
     return 0
   fi
-  if [[ $policy == auto && -n ${ZCODER_RUNTIME_ACTIVE:-} ]]; then
-    if zmodload zdraw 2>/dev/null; then
-      ZCODER_CURSES_BACKEND=private
-      ZCODER_CURSES_MODULE=zdraw ZCODER_CURSES_COMMAND=zdraw
-      return 0
-    fi
-  fi
-  # Host identity also prevents rsynced native binaries being selected on the
-  # farm. The build stamp is data, never sourced as shell code.
-  if [[ $policy == auto && -z ${ZCODER_RUNTIME_ACTIVE:-} && -r $root/zcoder-abi &&
-        -f $root/modules/zdraw.so && $(<"$root/zcoder-abi") == "$signature" ]]; then
-    local -a module_path=("$root/modules" "${module_path[@]}")
-    if zmodload zdraw 2>/dev/null; then
-      ZCODER_CURSES_BACKEND=bundled
-      ZCODER_CURSES_MODULE=zdraw ZCODER_CURSES_COMMAND=zdraw
-      return 0
-    fi
-    module_path=("${module_path[@]:1}")
+  if [[ $policy == auto ]] && zmodload zdraw 2>/dev/null; then
+    ZCODER_CURSES_BACKEND=installed
+    ZCODER_CURSES_MODULE=zdraw ZCODER_CURSES_COMMAND=zdraw
+    return 0
   fi
   zmodload zsh/curses || return 1
   ZCODER_CURSES_BACKEND=stock

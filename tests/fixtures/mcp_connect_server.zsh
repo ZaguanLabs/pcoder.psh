@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 zmodload zsh/mapfile zsh/zselect
 typeset -g fixture_base="$1" fixture_phase="${mapfile[$1.phase]}" line='' method='' id='' result=''

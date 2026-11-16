@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 
 # Opt-in behavioral evaluation for local Ollama coding models. This is not
 # part of `make test`: it performs real inference and may take several minutes.
@@ -179,7 +179,7 @@ eval_prepare_fixture() {
   mapfile[$run_dir/alpha.txt]=$'juniper-417\n'
   mapfile[$run_dir/beta.txt]=$'cobalt-862\n'
   mapfile[$run_dir/fallback.txt]=$'ember-593\n'
-  mapfile[$run_dir/src/app.zsh]=$'#!/usr/bin/env zsh\n# target_marker: bounded evidence\nprint -r -- ready\n'
+  mapfile[$run_dir/src/app.zsh]=$'#!/usr/bin/env psh\n# target_marker: bounded evidence\nprint -r -- ready\n'
   mapfile[$run_dir/note.txt]=$'status: old\n'
   case "$scenario" in
     independent_reads)

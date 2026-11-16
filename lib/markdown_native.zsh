@@ -6,17 +6,7 @@ typeset -g UI_MARKDOWN_POLICY=unicode-17.0.0-egc-wcwidth-sum-attach-zero
 
 zcoder_markdown_load() {
   emulate -L zsh
-  zmodload -e zmdown && return 0
-  if [[ -n ${ZCODER_RUNTIME_ACTIVE:-} ]]; then
-    zmodload zmdown 2>/dev/null
-    return
-  fi
-  local root="${1:-$ZCODER_DIR}/vendor/zmdown/.build"
-  local signature="$ZSH_VERSION:$ZSH_PATCHLEVEL:$MACHTYPE:$OSTYPE:$HOST"
-  [[ -r $root/zcoder-abi && -f $root/modules/zmdown.so &&
-     $(<"$root/zcoder-abi") == "$signature" ]] || return 1
-  local -a module_path=("$root/modules" "${module_path[@]}")
-  zmodload zmdown 2>/dev/null
+  zmodload -e zmdown || zmodload zmdown 2>/dev/null
 }
 
 ui_markdown_init() {

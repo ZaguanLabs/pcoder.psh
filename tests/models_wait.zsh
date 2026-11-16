@@ -11,11 +11,11 @@ models_wait() {
 }
 models_server() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/models_server.zsh" "$PROJECT_DIR" "$models_base"
+  exec psh -f "$TEST_DIR/fixtures/models_server.zsh" "$PROJECT_DIR" "$models_base"
 }
 models_fixture() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/models_ui.zsh" "$PROJECT_DIR" "$models_base"
+  exec psh -f "$TEST_DIR/fixtures/models_ui.zsh" "$PROJECT_DIR" "$models_base"
 }
 if ! { zf_mkdir "$models_base.bin" &&
     zcoder_write_text_file "$models_base.bin/opencode" "${mapfile[$TEST_DIR/fixtures/models_opencode.zsh]}" &&

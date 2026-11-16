@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 setopt extendedglob no_monitor no_notify
 zmodload zsh/system zsh/stat zsh/datetime zsh/mapfile zsh/net/tcp zsh/zselect zsh/files

@@ -13,7 +13,7 @@ drawing_run() {
   trap - EXIT INT TERM
   export TERM=$drawing_term ZCODER_COLOR=$drawing_policy ZCODER_SPANS=true ZCODER_BORDERS=auto
   export NO_COLOR=$drawing_no_color
-  exec zsh -df "$TEST_DIR/fixtures/drawing_ui.zsh" "$PROJECT_DIR" "$drawing_base" "$drawing_backend" "$drawing_connection"
+  exec psh -df "$TEST_DIR/fixtures/drawing_ui.zsh" "$PROJECT_DIR" "$drawing_base" "$drawing_backend" "$drawing_connection"
 }
 typeset -a drawing_backends=(stock local stock client)
 [[ $resize_backend == bundled ]] && drawing_backends+=(auto local auto client)

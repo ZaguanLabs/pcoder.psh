@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 typeset fixture_root=$1 fixture_base=$2
 source "$fixture_root/lib/curses.zsh"

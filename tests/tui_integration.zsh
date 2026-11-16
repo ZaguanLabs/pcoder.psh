@@ -14,11 +14,11 @@ integration_wait() {
 }
 integration_server() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/local_application_server.zsh" "$PROJECT_DIR" "$integration_base"
+  exec psh -f "$TEST_DIR/fixtures/local_application_server.zsh" "$PROJECT_DIR" "$integration_base"
 }
 integration_application() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/local_application.zsh" "$PROJECT_DIR" "$integration_base"
+  exec psh -f "$TEST_DIR/fixtures/local_application.zsh" "$PROJECT_DIR" "$integration_base"
 }
 zf_mkdir -p "$integration_base.workspace" "$integration_base.tmp"
 integration_server >/dev/null 2> "$integration_base.server_log" &
@@ -105,7 +105,7 @@ zpty -d local-application
 # Resume the real saved chat in a second application process.
 integration_resume_application() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/local_application.zsh" "$PROJECT_DIR" "$integration_base" \
+  exec psh -f "$TEST_DIR/fixtures/local_application.zsh" "$PROJECT_DIR" "$integration_base" \
     --resume "${integration_sessions[1]:t:r}" --no-warmup --context-window 98304
 }
 zf_rm "$integration_base.application_exit"
@@ -127,7 +127,7 @@ kill -TERM "$integration_server_pid" 2>/dev/null || true
 wait "$integration_server_pid" 2>/dev/null || true
 unfunction integration_wait integration_server integration_application
 
-command zsh -f "$TEST_DIR/fixtures/long_transcript.zsh" "$PROJECT_DIR" "$integration_base.long"
+command psh -f "$TEST_DIR/fixtures/long_transcript.zsh" "$PROJECT_DIR" "$integration_base.long"
 assert_success "long-session rendering fixture completes" $?
 assert_eq 1000 "${mapfile[$integration_base.long.initial]:-}" "initial layout covers a thousand retained conversation entries"
 assert_eq '0:0' "${mapfile[$integration_base.long.idle]:-}" "one hundred idle refreshes do no layout or curses work"
@@ -136,16 +136,12 @@ assert_eq '25:1001' "${mapfile[$integration_base.long.streaming]:-}" "twenty-fiv
 assert_eq '0:501' "${mapfile[$integration_base.long.selection]:-}" "long-session selection reuses existing layout"
 assert_eq '1001:501' "${mapfile[$integration_base.long.resize]:-}" "narrowing a long transcript rewraps once and preserves selection"
 
-# zsh -n accepts one script, with subsequent words becoming its arguments.
+# psh -n accepts one script, with subsequent words becoming its arguments.
 # Exercise the real Makefile in isolation to ensure later files are checked.
 integration_check_root="$TEST_TMP/syntax-check"
-zf_mkdir -p "$integration_check_root/lib" "$integration_check_root/scripts" "$integration_check_root/tests/fixtures" "$integration_check_root/vendor/zjson/lib"
+zf_mkdir -p "$integration_check_root/lib" "$integration_check_root/scripts" "$integration_check_root/tests/fixtures"
 zcoder_write_text_file "$integration_check_root/Makefile" "${mapfile[$PROJECT_DIR/Makefile]}"
-zcoder_write_text_file "$integration_check_root/scripts/setup-json.zsh" "${mapfile[$PROJECT_DIR/scripts/setup-json.zsh]}"
-for integration_check_file in "$PROJECT_DIR/vendor/zjson/zjson.zsh" "$PROJECT_DIR"/vendor/zjson/lib/*.zsh; do
-  zcoder_write_text_file "$integration_check_root/${integration_check_file#$PROJECT_DIR/}" "${mapfile[$integration_check_file]}"
-done
-for integration_check_file in zcoder.zsh chat.sh lib/valid.zsh scripts/valid.zsh tests/valid.zsh; do
+for integration_check_file in pcoder.psh chat.sh lib/valid.zsh scripts/valid.zsh tests/valid.zsh; do
   zcoder_write_text_file "$integration_check_root/$integration_check_file" ':'
 done
 zcoder_write_text_file "$integration_check_root/tests/fixtures/invalid.zsh" 'if then'

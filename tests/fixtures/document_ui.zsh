@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 setopt extendedglob
 zmodload zsh/terminfo zsh/datetime zsh/mapfile || exit 1
@@ -18,7 +18,7 @@ typeset -g fixture_phase=reader zdraw_ui_fixture
 typeset -g prose='Keep this paragraph visible while resizing the terminal. Its source position should survive wrapping. '
 prose="${(pr:1600::$prose:)}"
 if [[ $ZCODER_CURSES_COMMAND == zdraw ]]; then
-  source "$fixture_root/vendor/zdraw/lib/zdraw-fixture.zsh" || exit 1
+  zcoder_psh_script zdraw/lib/zdraw-fixture.zsh && source "$REPLY" || exit 1
   (( ${zdraw_features[(Ie)window_snapshots]} )) && fixture_capture=1
 fi
 functions[_fixture_document_draw]=${functions[_ui_document_draw]}

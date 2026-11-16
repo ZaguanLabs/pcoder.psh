@@ -1,6 +1,6 @@
 # Getting started
 
-zcoder.zsh is a Zsh-first coding agent for Ollama. It operates inside a selected
+zcoder.zsh is a psh-first coding agent for Ollama. It operates inside a selected
 workspace and can inspect files, make changes, apply patches, and request shell
 commands as it works toward an outcome.
 
@@ -8,8 +8,7 @@ commands as it works toward an outcome.
 
 For normal interactive use:
 
-- Zsh 5.8 or newer, with its standard loadable modules
-- the pinned zjson sources (initialized by `make` or `make compile`)
+- psh 1.0.0-rc2 or newer, including its bundled zjson, zdraw and zmdown components
 - a running Ollama server and a model with tool-calling support
 - `ripgrep` (`rg`) for file listing and search
 - `git` or `patch` for applying patches; install both for the broadest format support
@@ -24,7 +23,7 @@ Older modules are probed on the first resize poll; a failed initial probe keeps
 the fallback for that session. No configuration is required.
 
 GNU `timeout` is optional. Without it, approved shell commands still work, but
-their configured time limits are not enforced. GNU Make and a C toolchain are needed for the optional native setup below.
+their configured time limits are not enforced. GNU Make is needed for the project checks and compilation.
 `mktemp` is also needed for the test suite.
 
 Claude Code, Codex, Google Antigravity, and OpenCode are optional external
@@ -54,56 +53,11 @@ structured tool calls for agent work.
 
 ## Enhanced curses module
 
-Plain `make` (or `make setup`) builds the enhanced interface, including zdraw
-and zmdown. It initializes the pinned zjson, zdraw and zmdown submodules,
-downloads Zsh 5.9.2 from zsh.org, verifies its pinned SHA-256 checksum, and builds a private shell with
-both modules. You do not need to find or configure your system shell's sources.
-
-Build requirements:
-
-- Zsh 5.8+, Git, GNU Make (`gmake` on systems where `make` is not GNU Make)
-- a C compiler, standard Unix build tools, Autoconf, Autoheader, M4 and Patch
-- wide-character ncurses development headers/libraries and a terminfo database
-- Curl, Tar and Xz; either `sha256sum` or `shasum` for archive verification
-
-These are build-time tools. The Makefile reports missing commands; it does not
-install operating-system packages or use sudo. For nonstandard ncurses paths,
-supply `CPPFLAGS` and `LDFLAGS`. Use a checkout path without whitespace or shell
-metacharacters because Zsh's upstream makefiles do not support those paths.
-Linux is tested; BSD/macOS native builds still need validation.
-
-```sh
-make
-./zcoder.zsh --workspace /path/to/project
-```
-
-Build files and logs stay under `.build/native/`. The private shell is used
-only to run this application; your login shell and system Zsh are unchanged.
-The launcher selects it automatically when its host and checkout path match.
-`ZCODER_RUNTIME=system ./zcoder.zsh` uses the installed shell instead. Missing,
-copied or relocated private runtimes fall back to the installed shell; run
-`make` on the destination to build a matched set there.
-
-Repeat `make` after pulling updates. Successful matching builds are reused;
-failed rebuilds leave the previous runtime available. Downloads are cached and
-verified on rebuild. .build/native/lock prevents concurrent builds and is released automatically
-when the build exits, including after interruption. Inspect
-`.build/native/build.log` when configuration or compilation fails.
-
-`make native` builds only the runtime and modules. `make curses` and
-`make markdown` also prepare the matched set unless you explicitly supply
-`ZSH_BUILD_ROOT` for an advanced system-shell build. `make compile` initializes
-zjson if missing and compiles the application and zjson libraries. It never
-downloads or builds C code, so headless farm deployments retain their lightweight
-workflow. Use it to skip native setup and run with the existing Zsh renderer.
-For source-only use without wordcode compilation, run `make json` or
-`git submodule update --init --recursive -- vendor/zjson` before launching.
-zjson adds no external runtime command or native module.
-
-`/terminal` reports `private` when the private zdraw module is selected and
-`zmdown` when native Markdown is active. Use a UTF-8 locale for that rendering
-path. `ZCODER_CURSES=stock` selects stock curses; `ZCODER_MARKDOWN=zsh` selects
-the Zsh Markdown renderer. Headless server and ACP modes do not load curses.
+psh supplies zdraw and zmdown as modules and zjson as shell functions. `make`
+checks and compiles the application libraries without downloading dependencies.
+Use a UTF-8 locale for native Markdown. `ZCODER_CURSES=stock` selects stock
+curses; `ZCODER_MARKDOWN=zsh` selects the shell Markdown renderer. Headless
+server and ACP modes do not load curses.
 
 When the module advertises `structured_events` and `norefresh_events`, input
 reads leave unfinished drawing hidden until the next explicit frame refresh.

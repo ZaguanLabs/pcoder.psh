@@ -236,7 +236,7 @@ _zcoder_command_context() {
       ;;
     /mcp\ trust|/mcp\ untrust)
       if [[ "$REMOTE_MODE" == client ]]; then
-        ui_append_message error "Approve project MCP servers on the server with '${ZCODER_NAME:-zcoder.zsh} mcp trust'."
+        ui_append_message error "Approve project MCP servers on the server with '${ZCODER_NAME:-pcoder.psh} mcp trust'."
         return 2
       fi
       _zcoder_mcp_trust_command "${text#/mcp }"

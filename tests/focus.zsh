@@ -90,7 +90,7 @@ test_integration focus || return 0
   }
   focus_run() {
     trap - EXIT INT TERM
-    exec zsh -f "$TEST_DIR/fixtures/focus_ui.zsh" "$PROJECT_DIR" "$base" "$backend"
+    exec psh -f "$TEST_DIR/fixtures/focus_ui.zsh" "$PROJECT_DIR" "$base" "$backend"
   }
   for backend in stock auto; do
     base="$TEST_TMP/focus-$backend"

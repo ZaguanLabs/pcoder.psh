@@ -1,12 +1,8 @@
-# Application codecs and scalar tool arguments; generic JSON lives in zjson.
-() {
-  local entry="${${(%):-%x}:A:h:h}/vendor/zjson/zjson.zsh"
-  [[ -r "$entry" ]] || {
-    print -ru2 -- 'Missing zjson dependency. Run make json or git submodule update --init --recursive.'
-    return 1
-  }
-  source "$entry"
-} || return 1
+# Application codecs and scalar tool arguments; generic JSON ships with psh.
+if (( ! $+functions[zcoder_psh_script] )); then
+  source "${${(%):-%x}:A:h}/psh.zsh" || return 1
+fi
+zcoder_psh_script zjson/zjson.zsh && source "$REPLY" || return 1
 
 typeset -g JSON_RESPONSE_CONTENT=""
 typeset -g JSON_RESPONSE_THINKING=""

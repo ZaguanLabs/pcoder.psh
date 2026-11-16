@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 setopt extendedglob
 zmodload zsh/zpty zsh/zselect zsh/datetime zsh/mapfile zsh/files || exit 1
@@ -21,7 +21,7 @@ wait_phase() {
 run_fixture() {
   trap - EXIT INT TERM
   export TERM=xterm-256color
-  exec zsh -df "$root/tests/fixtures/keyboard_exit_ui.zsh" "$root" "$base" "$action"
+  exec psh -df "$root/tests/fixtures/keyboard_exit_ui.zsh" "$root" "$base" "$action"
 }
 for action in initial resume; do
   output=''; mapfile[$base/phase]=''

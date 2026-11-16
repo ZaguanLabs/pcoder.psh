@@ -219,7 +219,7 @@ _acp_initialize() {
   ACP_INITIALIZED=1
   local queue_capability=true
   [[ "${REMOTE_MODE:-local}" == client ]] && queue_capability="${REMOTE_INPUT_SUPPORTED:-false}"
-  _acp_result "$id_raw" "{\"protocolVersion\":${ACP_PROTOCOL_VERSION},\"agentCapabilities\":{\"loadSession\":true,\"promptCapabilities\":{\"embeddedContext\":true},\"_meta\":{\"zcoder/inputQueue\":${queue_capability}}},\"agentInfo\":{\"name\":\"zcoder.zsh\",\"title\":\"zcoder.zsh\",\"version\":\"${ZCODER_VERSION}\"},\"authMethods\":[]}"
+  _acp_result "$id_raw" "{\"protocolVersion\":${ACP_PROTOCOL_VERSION},\"agentCapabilities\":{\"loadSession\":true,\"promptCapabilities\":{\"embeddedContext\":true},\"_meta\":{\"zcoder/inputQueue\":${queue_capability}}},\"agentInfo\":{\"name\":\"pcoder.psh\",\"title\":\"pcoder.psh\",\"version\":\"${ZCODER_VERSION}\"},\"authMethods\":[]}"
   (( requested == ACP_PROTOCOL_VERSION )) || print -u2 -r -- "ACP: client requested protocol v${requested}; offered v${ACP_PROTOCOL_VERSION}"
 }
 

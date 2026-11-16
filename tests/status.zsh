@@ -16,28 +16,28 @@ ui_invalidate header; MOCK_ZCURSES_CALLS=(); ui_draw_header
 assert_contains "${(F)MOCK_ZCURSES_CALLS}" '[ Ready ' "a 60-column terminal still paints its status badge"
 
 status_header_identity_test() {
-  local ZCODER_NAME=zcoder.zsh ZCODER_VERSION=0.11.3
+  local ZCODER_NAME=pcoder.psh ZCODER_VERSION=0.11.3
   local ZCODER_MODEL=kat-coder-2.5-dev-mtp-q4-128k OLLAMA_HOST=192.168.1.48:11434
-  local ZCODER_WORKSPACE=/workspace/zcoder.zsh REMOTE_MODE=local
+  local ZCODER_WORKSPACE=/workspace/pcoder.psh REMOTE_MODE=local
   local -i SCREEN_W=60
   local call='' header_text=''
   for SCREEN_W in 60 80 160; do
     ui_invalidate header; MOCK_ZCURSES_CALLS=(); ui_draw_header
-    assert_contains "${(F)MOCK_ZCURSES_CALLS}" 'zcoder.zsh v0.11.3' "the ${SCREEN_W}-column header retains the application name and version"
+    assert_contains "${(F)MOCK_ZCURSES_CALLS}" 'pcoder.psh v0.11.3' "the ${SCREEN_W}-column header retains the application name and version"
     assert_contains "${(F)MOCK_ZCURSES_CALLS}" '[ Ready' "the ${SCREEN_W}-column header retains its status beside the identity"
   done
   for call in "${MOCK_ZCURSES_CALLS[@]}"; do
     [[ "$call" == 'string top_win '* ]] && header_text+="${call#string top_win }"
   done
-  assert_contains "$header_text" "$ZCODER_MODEL@$OLLAMA_HOST | zcoder.zsh" "the header places the workspace after the compact model and host"
+  assert_contains "$header_text" "$ZCODER_MODEL@$OLLAMA_HOST | pcoder.psh" "the header places the workspace after the compact model and host"
   assert_not_contains "${(F)MOCK_ZCURSES_CALLS}" 'move top_win 0 2' "the workspace no longer occupies the top border"
-  assert_contains "${(F)MOCK_ZCURSES_CALLS}" $'attr top_win -bold -dim bold cyan/black\nstring top_win ⚡ zcoder.zsh v0.11.3' "header branding restores the lightning icon and cyan name/version"
+  assert_contains "${(F)MOCK_ZCURSES_CALLS}" $'attr top_win -bold -dim bold cyan/black\nstring top_win ⚡ pcoder.psh v0.11.3' "header branding restores the lightning icon and cyan name/version"
   assert_contains "${(F)MOCK_ZCURSES_CALLS}" $'attr top_win -bold -dim bold yellow/black\nstring top_win '"$ZCODER_MODEL" "the model name retains its distinct yellow styling"
   assert_contains "${(F)MOCK_ZCURSES_CALLS}" $'attr top_win -bold -dim dim white/black\nstring top_win @'"$OLLAMA_HOST" "the host retains subdued white styling"
   REMOTE_MODE=client
   local REMOTE_SERVER_NAME=remote-fixture REMOTE_ENDPOINT=192.168.1.48:7337
   ui_invalidate header; MOCK_ZCURSES_CALLS=(); ui_draw_header
-  assert_contains "${(F)MOCK_ZCURSES_CALLS}" 'zcoder.zsh v0.11.3' "remote headers retain the application name and version"
+  assert_contains "${(F)MOCK_ZCURSES_CALLS}" 'pcoder.psh v0.11.3' "remote headers retain the application name and version"
   assert_contains "${(F)MOCK_ZCURSES_CALLS}" 'remote-fixture@192.168.1.48:7337' "remote headers identify the connected server"
   for SCREEN_W in 40 60 80 160; do
     ui_invalidate header; MOCK_ZCURSES_CALLS=(); ui_draw_header
@@ -163,7 +163,7 @@ status_pty_wait() {
 }
 status_pty_run() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/status_ui.zsh" "$PROJECT_DIR" "$status_pty_base"
+  exec psh -f "$TEST_DIR/fixtures/status_ui.zsh" "$PROJECT_DIR" "$status_pty_base"
 }
 TERM=xterm-256color zpty -b status-ui status_pty_run
 assert_success "status fixture starts with real curses" $?

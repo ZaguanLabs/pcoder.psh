@@ -1,6 +1,6 @@
 # Development
 
-zcoder targets Zsh 5.8 and newer. Keep application logic Zsh-first and preserve
+zcoder targets psh 1.0.0-rc2 and newer. Keep application logic psh-first and preserve
 the separation between Ollama, tool dispatch, persistence, remote transport,
 and curses.
 
@@ -12,7 +12,7 @@ Run the complete required suite before handing off changes:
 make test
 ```
 
-`make test` first parses the entry points, libraries, tests, and fixtures with `zsh -n`,
+`make test` first parses the entry points, libraries, tests, and fixtures with `psh -n`,
 then runs the complete shell-level suite, including terminal and integration
 fixtures. For a shorter development loop, use:
 
@@ -31,8 +31,8 @@ in the fast target. `make test` is still required before handoff.
 To locate expensive groups, run either mode with timings:
 
 ```sh
-zsh -df tests/run.zsh --timings
-zsh -df tests/run.zsh --fast --timings
+psh -df tests/run.zsh --timings
+psh -df tests/run.zsh --fast --timings
 ```
 
 The final count is **assertions**, not independent scenarios or a coverage score.
@@ -67,13 +67,8 @@ make check
 ```
 
 Run `make compile` after changes and after a Git push. It also runs the syntax
-checks, then compiles application and zjson libraries with the installed Zsh. These commands do
-not substitute for executing the suite on Zsh 5.8 when checking that minimum
-version specifically. Run the suite using an actual Zsh 5.8 runtime to establish
-that compatibility; source parsing and wordcode compilation on the development
-host establish only compatibility with that host's installed Zsh. Rebuild `.zwc`
-files with the destination host's Zsh instead of assuming generated wordcode is
-portable between versions.
+checks, then compiles application libraries with the installed psh. Rebuild
+wordcode with the destination host's psh instead of assuming it is portable.
 
 The TUI integration checks run real local and remote entrypoints in PTYs against
 native TCP fixtures. They cover startup cancellation, draft recovery, streaming,
@@ -99,181 +94,10 @@ all tool results must precede steering, and follow-ups must wait for completion.
 Its PTY fixture checks Enter, Ctrl+G, Unicode/multiline paste, draft preservation,
 and cancellation using the actual editor and queue.
 
-## JSON dependency
+## Bundled components
 
-`vendor/zjson` is pinned to `2f9b6d3f9df8adbab33636965d46fa9d5c0baad5`
-from `https://github.com/ZaguanLabs/zjson.git`. `make json` initializes it when
-sources are missing; `make check`, `make compile` and test targets do this first.
-Complete checkouts need no network access. Existing local edits are preserved;
-an incomplete edited checkout is rejected rather than reset. After updating the
-parent revision, run `git submodule sync --recursive` and
-`git submodule update --init --recursive` to select the newly pinned sources.
-
-Compilation includes the public entrypoint and its implementation files.
-Generated `*.zwc` files are excluded through the submodule's local Git exclude
-file; `make clean` removes them. Source-only copies need no Git metadata to run.
-
-zcoder's suite exercises application codecs, protocol validation, parser context
-preservation and UTF-8 repair at application boundaries. The upstream matrix is
-separate, avoiding thousands of duplicated generic-parser assertions in every
-application run:
-
-```sh
-zsh -df vendor/zjson/tests/matrix.zsh /path/to/zsh-5.8 /path/to/zsh-5.9.2
-```
-
-Both versions are supported, with C and UTF-8 locale checks. See the dependency's
-`docs/embedding.md` for context/output ownership and public repair semantics.
-
-## Building the native dependencies
-
-The normal fresh-checkout path is `make` (or `make setup`). See
-[setup and build requirements](getting-started.md#enhanced-curses-module).
-It builds an isolated Zsh 5.9.2 runtime with both pinned modules, installs only
-that shell and its modules under `.build/native/`, verifies their contracts,
-and atomically publishes a data pointer to the completed build. The launcher
-checks the host and checkout path before selecting it. Running processes retain
-their immutable build prefix when a replacement is published.
-
-`make compile`, `make check` and `make test` do not invoke native setup. Existing
-system-shell builds in `vendor/*/.build` remain separate from private setup.
-Build fingerprints include dependency commits, setup script, source checksum,
-host/path and compiler flags. Previous builds are retained so rebuilding does
-not remove files used by running processes. Removing `.build/native/` disables
-the private runtime; stop processes using it before removing their build files.
-
-### Advanced: build for the installed shell
-
-
-`vendor/zdraw` is a pinned Git submodule using
-`https://github.com/ZaguanLabs/zdraw`. Initialize it over public HTTPS:
-
-```sh
-git submodule update --init --recursive
-ZSH_BUILD_ROOT=/path/to/matching/configured/zsh make curses
-make test
-make compile
-```
-
-For an existing checkout, synchronize the local submodule URL after updating:
-
-```sh
-git submodule sync --recursive
-git submodule update --init --recursive
-```
-
-The dependency can now configure and build an extracted public Zsh release in
-isolation; its tested baseline is 5.9.2. See `vendor/zdraw/README.md` for that
-standalone workflow. Our `make curses` integration still requires a configured,
-built source tree matching the installed shell, because it enables the module
-for ordinary zcoder launches. `make curses` checks the
-source-tree shell's version, patch level, and platform against the running Zsh,
-builds in `vendor/zdraw/.build`, checks that the module loads in a fresh shell,
-and writes a local version/platform/host stamp. It never installs a system module.
-The source tree and its C toolchain/development dependencies are build-time
-requirements; ordinary `make compile` still only compiles Zsh libraries.
-
-Fresh application processes select the bundle only with a matching stamp and
-available binary. A load failure falls back to the normal module search path.
-An already loaded module is retained. The adapter dispatches to `zdraw`
-or stock `zcurses` and reads the selected module's features and color limits.
-`ZCODER_CURSES=stock` bypasses the bundle; `/terminal` reports selection and
-native versus fallback resize queries.
-The stamp guards against common mismatches, including copying the build to a
-different farm host; it is not proof of ABI compatibility for arbitrary builds
-with different configuration flags. Supply a source build matching the installed
-shell. The experimental C module has not been validated against Zsh 5.8;
-the automatic setup instead runs both modules in its own Zsh 5.9.2.
-
-After upgrading from `vendor/zcurses`, run `make -C vendor/zdraw clean`
-once before rebuilding to discard the old module build cache.
-
-Rebuild after changing the pinned submodule revision or upgrading the local
-shell. When changing source trees or build configuration, run
-`make -C vendor/zdraw clean` first; this preserves downloaded sources while
-removing the working build and staged module. Farm headless
-processes need no module build; the NAS may receive the source via rsync and
-continues to run headlessly without a compiler or Make.
-
-`make test` automatically includes the production module loader in the resize
-PTY tests when a matching local build is present. It also runs stock-module
-resize tests, verifies native polling launches no `stty` subprocesses, and tests
-missing/mismatched builds and failed loads independently of curses. To test an
-external development build as well, set `ZCODER_TEST_CURSES_PATH` to its modules
-directory. The dependency's own broader module checks use a Python 3 PTY driver:
-
-```sh
-ZSH_BUILD_ROOT=/path/to/matching/configured/zsh make -C vendor/zdraw test
-```
-
-The module adds `geometry`, custom borders, runtime `colorinfo`,
-opt-in RGB colors and styled-span batching, with discovery through
-the read-only `zdraw_features` array. Its build also requires Autoconf,
-Autoheader, M4 and Patch for optional curses function checks. Its own RGB tests
-use `tic` to compile private terminfo fixtures. These are development tools,
-not additional runtime requirements for zcoder.
-zcoder checks the discovery parameter with `zmodload -F -e` on UI entry; an
-advertised geometry feature selects native polling even if its first query
-fails. A known feature set without geometry selects stty without probing the
-command. Missing/disabled discovery retains the legacy one-time probe, including
-compatibility with the original geometry-only fork. `/terminal` lists compiled
-features separately from negotiated terminal state and active drawing modes.
-General Unicode clipping remains outside the drawing adapter. The application
-PTY tests compare batched/fallback retained cells and exercise combining-mark
-rejection, indexed and monochrome palettes, and stock/bundled modules.
-
-`make test-visual` runs the picker and help-reader PTY tests and compares retained
-cell fixtures. It requires a matching zdraw build. The regular `make test` runs
-the same interaction checks but permits stock-only hosts to skip captures.
-See the [picker baseline guide](../tests/fixtures/picker/README.md) and
-[document baseline guide](../tests/fixtures/document/README.md) for reviewing
-differences and explicitly regenerating fixtures. Python is only needed for
-optional HTML comparison reports.
-
-When both `structured_events` and `norefresh_events` are advertised, input uses
-`event ... norefresh` so reads cannot present unfinished drawing. Feature
-selection is cached per UI entry. Character, key, resize and supported mouse
-records feed the existing paste and terminal-reply filter; frame presentation
-stays with `terminal_refresh`. Missing capabilities use legacy `input`. Only
-status 2 (unsupported before consuming input) disables the new path and retries
-through legacy input; timeouts and other failures never trigger a second read.
-`/terminal` reports the active input presentation mode.
-
-Session-scoped prepared rows (`prepare`/`draw`) and headless byte/column
-hit-testing (`textpos`) remain available for experiments. Prepared rows need
-measurement against our existing transcript cache before adoption, and
-`textpos` returns byte offsets rather than the editor's character indices.
-
-## Building optional Markdown support
-
-`make` includes Markdown support automatically. For the advanced installed-shell
-path, `vendor/zmdown` is pinned at `8bb1390`; zdraw is pinned at `9c599d8`.
-Build both modules against the configured source tree matching that shell:
-
-```sh
-git submodule update --init --recursive
-ZSH_BUILD_ROOT=/path/to/matching/configured/zsh make curses markdown
-make compile
-make test
-```
-
-With `ZSH_BUILD_ROOT` set, `make markdown` builds only zmdown and writes the same local ABI/host stamp used
-by the curses loader. Neither module is installed system-wide. Normal startup,
-headless operation and `make compile` require no C toolchain. Rebuild after a
-dependency or shell update; copied farm binaries are not enabled on other hosts.
-An already loaded zmdown is retained and its output contract is checked.
-
-Native Markdown requires both modules, UTF-8 and zdraw's grapheme-safe text
-policy. zmdown supplies `wcwidth-sum` / `first-base` structured rows; the app
-preflights their complete text and cell counts before publishing a message.
-zdraw then clips those rows with `unicode-17.0.0-egc-wcwidth-sum-attach-zero`.
-Syntax colors remain application-owned. Resize and streaming updates regenerate
-rows from the original Markdown; cached rows retain their drawing policy.
-
-`tests/markdown_native.zsh` always tests optional loading and capability fallback.
-When both local builds are available it also runs a real PTY, comparing retained
-cells across widths and checking streaming, copying, and Unicode rejection.
-The existing Markdown tests continue to cover the dependency-free renderer.
+psh supplies zjson, zdraw and zmdown. The application uses the installed psh
+components directly; no submodules or private shell build are required.
 
 ## Performance measurements
 

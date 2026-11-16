@@ -114,7 +114,7 @@ hardening_protocol_tests() {
     for mode in input output; do
       barrier="$TEST_TMP/hardening-acp-$mode"
       zf_rm -f "$barrier"
-      coproc command zsh "$TEST_DIR/fixtures/hardening_acp.zsh" "$mode" "$barrier"
+      coproc command psh "$TEST_DIR/fixtures/hardening_acp.zsh" "$mode" "$barrier"
       peer_pid=$!
       exec {read_fd}<&p
       exec {write_fd}>&p

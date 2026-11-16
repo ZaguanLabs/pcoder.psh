@@ -6,7 +6,8 @@ typeset -gA zdraw_text_selection=()
 typeset -ga UI_COPY_TEXTS=() UI_COPY_COLUMNS=() UI_COPY_GAPS=()
 typeset -ga UI_SELECTION_STARTS=() UI_SELECTION_ENDS=() UI_SELECTION_TEXTS=()
 typeset -ga UI_SELECTION_COLUMNS=() UI_SELECTION_GAPS=()
-source "${${(%):-%x}:A:h:h}/vendor/zdraw/lib/zdraw-text-selection.zsh"
+(( $+functions[zcoder_psh_script] )) || source "${${(%):-%x}:A:h}/psh.zsh" || return 1
+zcoder_psh_script zdraw/lib/zdraw-text-selection.zsh && source "$REPLY" || return 1
 
 # Rows are excluded by default. Call after emitting selectable content; prefix
 # is presentation indentation, gap is logical text consumed between soft wraps.

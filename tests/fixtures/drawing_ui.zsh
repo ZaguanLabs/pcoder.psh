@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 # Capture real retained cells and exercise both drawing paths in a private PTY.
 emulate -R zsh
 setopt extendedglob
@@ -72,7 +72,7 @@ if [[ $UI_COLOR_MODE == basic ]]; then
      $UI_THEME_COLORS[success] != $UI_THEME_COLORS[error] ]] || exit 16
 fi
 if [[ $ZCODER_CURSES_COMMAND == zdraw ]]; then
-  source "$fixture_root/vendor/zdraw/lib/zdraw-ui.zsh" || exit 1
+  zcoder_psh_script zdraw/lib/zdraw-ui.zsh && source "$REPLY" || exit 1
   typeset -A zdraw_ui_theme zdraw_ui_style color_cell
   ui_widget_theme
   zdraw-label sample 1 1 20 'Status' normal fg=error || exit 17

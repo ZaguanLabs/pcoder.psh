@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 setopt extendedglob
 typeset fixture_root="$1" fixture_base="$2" fixture_backend="${3:-auto}" fixture_columns="${4:-110}"
@@ -44,7 +44,7 @@ if [[ $fixture_backend == auto && $UI_COLOR_MODE != mono ]]; then
   [[ -n "$old_color" && -n "$new_color" && "$old_color" != "$new_color" ]] || exit 5
 fi
 if [[ $fixture_backend == auto ]]; then
-  source "$fixture_root/vendor/zdraw/lib/zdraw-fixture.zsh"
+  zcoder_psh_script zdraw/lib/zdraw-fixture.zsh && source "$REPLY"
   typeset zdraw_ui_fixture
   zdraw-fixture chat_win || exit 6
   print -r -- "$zdraw_ui_fixture" > "$fixture_base.json"

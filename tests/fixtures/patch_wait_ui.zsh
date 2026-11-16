@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 setopt extendedglob no_monitor no_notify
 zmodload zsh/curses zsh/terminfo zsh/datetime zsh/mapfile zsh/files zsh/system zsh/zselect
@@ -16,11 +16,11 @@ tool_process_run() {
   local process_cwd="$1" process_timeout="$2"
   shift 2
   if [[ "$fixture_phase" == check ]]; then
-    _fixture_process "$process_cwd" "$process_timeout" zsh -fc 'zmodload zsh/mapfile zsh/zselect; mapfile[$1]=check; while true; do zselect -t 5; done' worker "${fixture_base}.started"
+    _fixture_process "$process_cwd" "$process_timeout" psh -fc 'zmodload zsh/mapfile zsh/zselect; mapfile[$1]=check; while true; do zselect -t 5; done' worker "${fixture_base}.started"
   elif [[ "$fixture_phase" == apply && " $* " != *' --check '* ]]; then
     # Apply a real patch, then delay completion publication so cancellation
     # exercises a mutation whose effects have already reached disk.
-    _fixture_process "$process_cwd" "$process_timeout" zsh -fc 'zmodload zsh/mapfile zsh/zselect; marker=$1; shift; command "$@" || exit $?; mapfile[$marker]=apply; while true; do zselect -t 5; done' worker "${fixture_base}.started" "$@"
+    _fixture_process "$process_cwd" "$process_timeout" psh -fc 'zmodload zsh/mapfile zsh/zselect; marker=$1; shift; command "$@" || exit $?; mapfile[$marker]=apply; while true; do zselect -t 5; done' worker "${fixture_base}.started" "$@"
   else _fixture_process "$process_cwd" "$process_timeout" "$@"
   fi
 }

@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 zmodload zsh/mapfile
 typeset -g fixture_root=$1 fixture_base=$2
@@ -43,5 +43,5 @@ source() {
   esac
   return 0
 }
-builtin source "$fixture_root/zcoder.zsh" --model fixture --workspace "$fixture_base.workspace" \
+builtin source "$fixture_root/pcoder.psh" --model fixture --workspace "$fixture_base.workspace" \
   --context-window 32768 --no-warmup --deny-commands

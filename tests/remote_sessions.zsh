@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 # Real server startup and authenticated HTTP, with no Ollama dependency.
 emulate -R zsh
 setopt extendedglob
@@ -54,7 +54,7 @@ start_server() {
     if [[ $mode == custom ]]; then export ZCODER_SESSIONS_DIR=$store
     else unset ZCODER_SESSIONS_DIR
     fi
-    exec zsh -df "$root/zcoder.zsh" --server shared-fixture --port "$port" \
+    exec psh -df "$root/pcoder.psh" --server shared-fixture --port "$port" \
       --token-file "$scratch/token" --workspace "$scratch/workspace-alias" \
       --profile coding --model fixture --context-window 32768 --no-warmup --deny-commands
   ) > "$scratch/server.log" 2>&1 &

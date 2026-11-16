@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 # Exercise allocation failures and session snapshots without curses or Ollama.
 emulate -R zsh
 source "${0:A:h:h}/lib/drawing.zsh" || exit 1

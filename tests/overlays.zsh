@@ -228,7 +228,7 @@ overlay_pty_wait() {
 }
 overlay_pty_run() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/overlays_ui.zsh" "$PROJECT_DIR" "$overlay_pty_base"
+  exec psh -f "$TEST_DIR/fixtures/overlays_ui.zsh" "$PROJECT_DIR" "$overlay_pty_base"
 }
 TERM=xterm-256color zpty -b overlays-ui overlay_pty_run
 assert_success "real curses modal fixture starts in a PTY" $?

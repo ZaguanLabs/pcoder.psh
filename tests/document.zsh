@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 setopt extendedglob
 zmodload zsh/zpty zsh/zselect zsh/datetime zsh/mapfile zsh/files || exit 1
@@ -25,7 +25,7 @@ doc_run() {
   trap - EXIT INT TERM
   unset ESCDELAY
   export TERM=xterm-256color ZCODER_COLOR=$doc_profile NO_COLOR=''
-  exec zsh -df "$doc_root/tests/fixtures/document_ui.zsh" "$doc_root" "$doc_base" "$doc_backend" "$doc_capture_base"
+  exec psh -df "$doc_root/tests/fixtures/document_ui.zsh" "$doc_root" "$doc_base" "$doc_backend" "$doc_capture_base"
 }
 (
   source "$doc_root/lib/util.zsh"
@@ -120,7 +120,7 @@ for doc_backend doc_profile in stock auto auto auto auto mono; do
       print -r -- "$(<"$actual")" > "$baseline"
     elif [[ ! -r $baseline || "$(<"$actual")" != "$(<"$baseline")" ]]; then
       print -ru2 -- "Visual mismatch: $baseline" "Actual: $actual"
-      print -ru2 -- "Compare: python3 vendor/zdraw/scripts/visual_diff.py ${(q)baseline} ${(q)actual} --html ${(q)actual}.html"
+      print -ru2 -- "Compare: python3 <psh-zdraw>/scripts/visual_diff.py ${(q)baseline} ${(q)actual} --html ${(q)actual}.html"
       exit 1
     fi
     (( snapshots++ ))

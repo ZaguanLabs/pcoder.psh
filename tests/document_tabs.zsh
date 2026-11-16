@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 setopt extendedglob
 zmodload zsh/files zsh/mapfile zsh/system zsh/stat zsh/datetime zsh/zselect zsh/zpty
@@ -78,9 +78,9 @@ wait_state() {
 run_fixture() {
   trap - EXIT INT TERM
   export TERM=xterm-256color ZCODER_SYNC_OUTPUT=false
-  exec zsh -df "$root/tests/fixtures/document_tabs_ui.zsh" "$root" "$ptybase" "$backend" "$ZCODER_WORKSPACE"
+  exec psh -df "$root/tests/fixtures/document_tabs_ui.zsh" "$root" "$ptybase" "$backend" "$ZCODER_WORKSPACE"
 }
-zsh -df "$root/tests/fixtures/document_tabs_server.zsh" "$root" "$base" "$ZCODER_WORKSPACE" > "$base/server.log" 2>&1 &
+psh -df "$root/tests/fixtures/document_tabs_server.zsh" "$root" "$base" "$ZCODER_WORKSPACE" > "$base/server.log" 2>&1 &
 server_pid=$!
 typeset -F server_deadline=$(( EPOCHREALTIME+10 ))
 while [[ ! -s $base/endpoint ]] && (( EPOCHREALTIME<server_deadline )); do zselect -t 1; done

@@ -97,7 +97,7 @@ test_integration handoff || return 0
   local -a modes=(stock) reply=()
   local mode action base output='' chunk='' native=0 expected='' pid=''
   local capabilities
-  capabilities=$(zsh -dfc 'source "$1/lib/curses.zsh"; ZCODER_CURSES=auto zcoder_curses_load "$1" || exit; typeset -a reply; zcoder_curses_features; print -r -- ${reply[(Ie)suspend_resume]}' handoff "$PROJECT_DIR")
+  capabilities=$(psh -dfc 'source "$1/lib/curses.zsh"; ZCODER_CURSES=auto zcoder_curses_load "$1" || exit; typeset -a reply; zcoder_curses_features; print -r -- ${reply[(Ie)suspend_resume]}' handoff "$PROJECT_DIR")
   [[ $capabilities == <1-> ]] && modes+=(auto)
   handoff_wait() {
     local -F deadline=$(( EPOCHREALTIME + 8 ))
@@ -110,7 +110,7 @@ test_integration handoff || return 0
   }
   handoff_run() {
     trap - EXIT INT TERM
-    exec zsh -df "$TEST_DIR/fixtures/handoff_ui.zsh" "$PROJECT_DIR" "$base" "$mode" "$action"
+    exec psh -df "$TEST_DIR/fixtures/handoff_ui.zsh" "$PROJECT_DIR" "$base" "$mode" "$action"
   }
   {
     for mode in "${modes[@]}"; do

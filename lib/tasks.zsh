@@ -35,7 +35,7 @@ _task_worker() {
     trap - EXIT INT TERM HUP WINCH
     local -i task_exit=125
     if builtin cd -- "$task_cwd"; then
-      command zsh -c "$task_command" </dev/null >| "$task_base.out" 2>&1
+      command psh -c "$task_command" </dev/null >| "$task_base.out" 2>&1
       task_exit=$?
     fi
     zcoder_write_text_file "$task_base.status" "$task_exit" &&

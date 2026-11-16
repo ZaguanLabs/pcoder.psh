@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 # Actual picker input/resize plus deterministic retained-cell captures.
 emulate -R zsh
 setopt extendedglob
@@ -17,7 +17,7 @@ typeset -g fixture_phase=choose fixture_last='' zdraw_ui_fixture
 typeset -a models=(alpha 'beta model' '界 é model')
 for fixture_index in {4..30}; do models+=("model-$fixture_index"); done
 if [[ $ZCODER_CURSES_COMMAND == zdraw ]]; then
-  source "$fixture_root/vendor/zdraw/lib/zdraw-fixture.zsh" || exit 1
+  zcoder_psh_script zdraw/lib/zdraw-fixture.zsh && source "$REPLY" || exit 1
   (( ${zdraw_features[(Ie)window_snapshots]} )) && fixture_capture=1
 fi
 functions[_fixture_picker_draw]=${functions[_ui_modal_list_draw]}

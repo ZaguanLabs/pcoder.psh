@@ -3,7 +3,7 @@ if [[ $terminal_has_norefresh == 1 ]]; then
   typeset presentation_base="$TEST_TMP/presentation" presentation_output='' presentation_chunk=''
   presentation_run() {
     trap - EXIT INT TERM
-    exec zsh -df "$TEST_DIR/fixtures/presentation_ui.zsh" "$PROJECT_DIR" "$presentation_base"
+    exec psh -df "$TEST_DIR/fixtures/presentation_ui.zsh" "$PROJECT_DIR" "$presentation_base"
   }
   presentation_wait() {
     local -F deadline=$(( EPOCHREALTIME + 8 ))

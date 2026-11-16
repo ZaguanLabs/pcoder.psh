@@ -67,7 +67,7 @@ _hardening_input_tests() {
   if test_integration hardening_input; then
     local backend=''
     for backend in stock auto; do
-      output=$(LC_ALL=C.UTF-8 zsh -df "$TEST_DIR/fixtures/grapheme_input.zsh" "$PROJECT_DIR" "$backend" 2>&1)
+      output=$(LC_ALL=C.UTF-8 psh -df "$TEST_DIR/fixtures/grapheme_input.zsh" "$PROJECT_DIR" "$backend" 2>&1)
       assert_success "$backend grapheme editing checks: $output" $?
     done
 
@@ -75,7 +75,7 @@ _hardening_input_tests() {
     zmodload zsh/zpty
     _hardening_input_pty_start() {
       trap - EXIT INT TERM
-      exec zsh -f "$TEST_DIR/fixtures/input_cells_ui.zsh" "$PROJECT_DIR" "$base"
+      exec psh -f "$TEST_DIR/fixtures/input_cells_ui.zsh" "$PROJECT_DIR" "$base"
     }
     TERM=xterm-256color zpty -b input-cells _hardening_input_pty_start
     local -F deadline=$(( EPOCHREALTIME + 5.0 ))

@@ -95,13 +95,13 @@ resize_pty_wait() {
 }
 resize_pty_run() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/resize_ui.zsh" "$PROJECT_DIR" "$resize_base" "$resize_module" "$resize_phase"
+  exec psh -f "$TEST_DIR/fixtures/resize_ui.zsh" "$PROJECT_DIR" "$resize_base" "$resize_module" "$resize_phase"
 }
 typeset -a resize_modules=('')
 [[ -n ${ZCODER_TEST_CURSES_PATH:-} ]] && resize_modules+=("$ZCODER_TEST_CURSES_PATH")
 # The ordinary suite exercises the production loader whenever a local build
 # is enabled; no environment override is needed after `make curses`.
-resize_backend=$(ZCODER_CURSES=auto zsh -dfc 'source "$1/lib/curses.zsh"; zcoder_curses_load "$1" || exit; print -r -- "$ZCODER_CURSES_BACKEND"' zcoder-test "$PROJECT_DIR")
+resize_backend=$(ZCODER_CURSES=auto psh -dfc 'source "$1/lib/curses.zsh"; zcoder_curses_load "$1" || exit; print -r -- "$ZCODER_CURSES_BACKEND"' zcoder-test "$PROJECT_DIR")
 [[ $resize_backend == bundled ]] && resize_modules+=(auto)
 typeset -g resize_module='' resize_base='' resize_phase='' resize_restored=''
 for resize_module in "${resize_modules[@]}"; do

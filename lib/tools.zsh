@@ -663,7 +663,7 @@ tool_search() {
   else
     search_argv+=(-- "${resolved_path#${${ZCODER_WORKSPACE:A}%/}/}")
   fi
-  worker_argv=(zsh -df "$ZCODER_SEARCH_SCRIPT" "${ZCODER_WORKSPACE:A}" "$mode" "$limit"
+  worker_argv=(psh -df "$ZCODER_SEARCH_SCRIPT" "${ZCODER_WORKSPACE:A}" "$mode" "$limit"
     "$context_lines" "$budget" "${out_file}.err" "$per_file" "${search_argv[@]}")
   {
     if (( ${UI_ACTIVE:-0} && $+functions[tool_process_run] )); then
@@ -823,7 +823,7 @@ tool_run_command() {
   out_file="$REPLY"
 
   if (( ${UI_ACTIVE:-0} && $+functions[tool_process_run] )); then
-    tool_process_run "$cwd" "$timeout_seconds" zsh -c "$command_text"
+    tool_process_run "$cwd" "$timeout_seconds" psh -c "$command_text"
     exit_code=$?
     output="$TOOL_PROCESS_OUTPUT"
     if (( TOOL_PROCESS_CANCELLED )); then
@@ -834,11 +834,11 @@ tool_run_command() {
     [[ -z "$TOOL_PROCESS_ERROR" ]] || { _tool_fail "$TOOL_PROCESS_ERROR"; return 1; }
   elif (( $+commands[timeout] )); then
     command timeout --signal=TERM --kill-after=2 "$timeout_seconds" \
-      zsh -c "cd ${(q)cwd} && ${command_text}" >| "$out_file" 2>&1
+      psh -c "cd ${(q)cwd} && ${command_text}" >| "$out_file" 2>&1
     exit_code=$?
     output="${mapfile[$out_file]}"
   else
-    command zsh -c "cd ${(q)cwd} && ${command_text}" >| "$out_file" 2>&1
+    command psh -c "cd ${(q)cwd} && ${command_text}" >| "$out_file" 2>&1
     exit_code=$?
     output="${mapfile[$out_file]}"
   fi

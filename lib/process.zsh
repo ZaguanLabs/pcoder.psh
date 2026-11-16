@@ -136,7 +136,7 @@ _tool_process_output() {
 }
 
 # Arguments are trusted executable argv already prepared by a tool. Only
-# run_command deliberately passes approved shell source to zsh -c.
+# run_command deliberately passes approved shell source to psh -c.
 tool_process_run() {
   emulate -L zsh
   local process_cwd="$1" process_timeout="$2"

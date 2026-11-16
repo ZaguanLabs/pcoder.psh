@@ -289,7 +289,7 @@ transcript_pty_run() {
   # zpty forks the current shell before invoking the fixture. Its inherited
   # EXIT trap must not delete the parent suite's private directory.
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/transcript_ui.zsh" "$PROJECT_DIR" "$transcript_pty_base"
+  exec psh -f "$TEST_DIR/fixtures/transcript_ui.zsh" "$PROJECT_DIR" "$transcript_pty_base"
 }
 TERM=xterm-256color zpty -b transcript-ui transcript_pty_run
 assert_success "real curses transcript fixture starts in a PTY" $?

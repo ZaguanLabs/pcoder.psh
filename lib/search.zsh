@@ -206,7 +206,7 @@ search_worker() {
       print -r -- "${search_error:-ripgrep failed (status $exit_code)}"$'\n'"$diagnostic"
       return 1
     fi
-    source "${${(%):-%x}:A:h:h}/vendor/zjson/zjson.zsh" || return 1
+    zcoder_psh_script zjson/zjson.zsh && source "$REPLY" || return 1
     _search_render
   } always {
     [[ -z "$search_fd" ]] || exec {search_fd}<&-

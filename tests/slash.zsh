@@ -88,7 +88,7 @@ slash_pty_wait() {
 }
 slash_pty_run() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/slash_ui.zsh" "$PROJECT_DIR" "$slash_base" "$slash_backend"
+  exec psh -f "$TEST_DIR/fixtures/slash_ui.zsh" "$PROJECT_DIR" "$slash_base" "$slash_backend"
 }
 typeset -g slash_base='' slash_backend='' slash_tty=''
 for slash_backend in stock auto; do

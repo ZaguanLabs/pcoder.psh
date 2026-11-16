@@ -1,5 +1,6 @@
 # Inline change previews use zdraw's change-gutter without another input loop.
-source "${${(%):-%x}:A:h:h}/vendor/zdraw/examples/components/change-gutter.zsh"
+(( $+functions[zcoder_psh_script] )) || source "${${(%):-%x}:A:h}/psh.zsh" || return 1
+zcoder_psh_script zdraw/examples/components/change-gutter.zsh && source "$REPLY" || return 1
 typeset -ga UI_DIFF_ROWS=()
 
 ui_diff_rows() {

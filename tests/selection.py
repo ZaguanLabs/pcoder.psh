@@ -12,7 +12,6 @@ import termios
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-runtime = Path((ROOT / '.build/native/current').read_text().strip())
 
 def run(profile='auto', backend='auto', markdown='auto', selection='auto'):
     control_r, control_w = os.pipe()
@@ -25,9 +24,8 @@ def run(profile='auto', backend='auto', markdown='auto', selection='auto'):
         os.environ.update(TERM='xterm-256color', LC_ALL='C.UTF-8', ZCODER_COLOR=profile, NO_COLOR='')
         os.environ.update(ZCODER_MARKDOWN=markdown, ZCODER_MOUSE_SELECTION=selection)
         os.environ.pop('LINES', None); os.environ.pop('COLUMNS', None)
-        os.execl(str(runtime/'bin/zsh'), 'zsh', '-df', str(ROOT/'scripts/run-native.zsh'),
-                 str(ROOT/'tests/fixtures/selection_ui.zsh'), str(runtime), str(ROOT),
-                 str(report_w), str(control_r), backend)
+        os.execlp('psh', 'psh', '-df', str(ROOT/'tests/fixtures/selection_ui.zsh'),
+                  str(ROOT), str(report_w), str(control_r), backend)
     os.close(control_r); os.close(report_w)
     pending=bytearray(); screen=bytearray(); reaped=False
     def report():

@@ -12,12 +12,9 @@ ui_picker_helpers_load() {
   emulate -L zsh
   (( UI_PICKER_HELPERS < 0 )) || return 0
   UI_PICKER_HELPERS=0
-  local root="${${(%):-%x}:A:h:h}/vendor/zdraw/lib" component
+  local component
   for component in layout list help; do
-    [[ -r "$root/zdraw-$component.zsh" ]] || return 0
-  done
-  for component in layout list help; do
-    source "$root/zdraw-$component.zsh" || return 0
+    zcoder_psh_script "zdraw/lib/zdraw-$component.zsh" && source "$REPLY" || return 0
   done
   UI_PICKER_HELPERS=1
 }

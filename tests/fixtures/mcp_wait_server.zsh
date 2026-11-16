@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 # Independent wire fixture: delay full or partial replies until released.
 emulate -R zsh
 zmodload zsh/mapfile zsh/zselect

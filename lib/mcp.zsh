@@ -387,9 +387,9 @@ mcp_project_trust_notice() {
   REPLY=""
   (( ${#MCP_PROJECT_PENDING} )) || return 0
   if [[ "$MCP_PROJECT_TRUST" == changed ]]; then
-    REPLY="Project MCP configuration changed since it was approved; its servers (${(j:, :)MCP_PROJECT_PENDING}) are not started. Review ${MCP_PROJECT_CONFIG}, then run /mcp trust or '${ZCODER_NAME:-zcoder.zsh} mcp trust' in the workspace."
+    REPLY="Project MCP configuration changed since it was approved; its servers (${(j:, :)MCP_PROJECT_PENDING}) are not started. Review ${MCP_PROJECT_CONFIG}, then run /mcp trust or '${ZCODER_NAME:-pcoder.psh} mcp trust' in the workspace."
   else
-    REPLY="Project MCP servers (${(j:, :)MCP_PROJECT_PENDING}) are not started until you approve ${MCP_PROJECT_CONFIG}. Review it, then run /mcp trust or '${ZCODER_NAME:-zcoder.zsh} mcp trust' in the workspace."
+    REPLY="Project MCP servers (${(j:, :)MCP_PROJECT_PENDING}) are not started until you approve ${MCP_PROJECT_CONFIG}. Review it, then run /mcp trust or '${ZCODER_NAME:-pcoder.psh} mcp trust' in the workspace."
   fi
 }
 
@@ -764,7 +764,7 @@ mcp_shutdown_all() {
 }
 
 _mcp_client_meta() {
-  REPLY='"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"zcoder.zsh","version":"'"${ZCODER_VERSION:-dev}"'"},"io.modelcontextprotocol/clientCapabilities":{}}'
+  REPLY='"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"pcoder.psh","version":"'"${ZCODER_VERSION:-dev}"'"},"io.modelcontextprotocol/clientCapabilities":{}}'
 }
 
 mcp_rpc() {
@@ -810,7 +810,7 @@ _mcp_discover_modern() {
 _mcp_initialize_legacy() {
   local name="$1" id request version_raw="" version=""
   (( MCP_NEXT_ID++ )); id=$MCP_NEXT_ID
-  request="{\"jsonrpc\":\"2.0\",\"id\":${id},\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"${MCP_VERSION_LEGACY}\",\"capabilities\":{},\"clientInfo\":{\"name\":\"zcoder.zsh\",\"version\":\"${ZCODER_VERSION:-dev}\"}}}"
+  request="{\"jsonrpc\":\"2.0\",\"id\":${id},\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"${MCP_VERSION_LEGACY}\",\"capabilities\":{},\"clientInfo\":{\"name\":\"pcoder.psh\",\"version\":\"${ZCODER_VERSION:-dev}\"}}}"
   mcp_broker_request "$name" R "$id" "$request" "$MCP_STARTUP_TIMEOUT" || return 1
   _mcp_response_parse "$MCP_RESPONSE" || { MCP_ERROR="legacy initialize returned malformed JSON"; return 1; }
   [[ -z "$MCP_RESPONSE_ERROR" && -n "$MCP_RESPONSE_RESULT" ]] || { MCP_ERROR="legacy initialize failed: ${MCP_RESPONSE_ERROR:-missing result}"; return 1; }
@@ -1114,18 +1114,18 @@ _mcp_cli_retrust() {
   if (( $1 )); then
     mcp_project_trust || { print -u2 -- "Error: $MCP_ERROR"; return 1; }
   else
-    print -r -- "Project MCP servers stay disabled until you review and run '${ZCODER_NAME:-zcoder.zsh} mcp trust'."
+    print -r -- "Project MCP servers stay disabled until you review and run '${ZCODER_NAME:-pcoder.psh} mcp trust'."
   fi
 }
 
 mcp_cli_usage() {
-  print -r -- "Usage: ${ZCODER_NAME:-zcoder.zsh} mcp list [--json]"
-  print -r -- "       ${ZCODER_NAME:-zcoder.zsh} mcp get NAME [--json]"
-  print -r -- "       ${ZCODER_NAME:-zcoder.zsh} mcp add [--scope user|project] [--env KEY=VALUE] NAME -- COMMAND [ARG ...]"
-  print -r -- "       ${ZCODER_NAME:-zcoder.zsh} mcp remove|delete [--scope user|project] NAME"
-  print -r -- "       ${ZCODER_NAME:-zcoder.zsh} mcp enable|disable [--scope user|project] NAME"
-  print -r -- "       ${ZCODER_NAME:-zcoder.zsh} mcp test NAME"
-  print -r -- "       ${ZCODER_NAME:-zcoder.zsh} mcp trust|untrust"
+  print -r -- "Usage: ${ZCODER_NAME:-pcoder.psh} mcp list [--json]"
+  print -r -- "       ${ZCODER_NAME:-pcoder.psh} mcp get NAME [--json]"
+  print -r -- "       ${ZCODER_NAME:-pcoder.psh} mcp add [--scope user|project] [--env KEY=VALUE] NAME -- COMMAND [ARG ...]"
+  print -r -- "       ${ZCODER_NAME:-pcoder.psh} mcp remove|delete [--scope user|project] NAME"
+  print -r -- "       ${ZCODER_NAME:-pcoder.psh} mcp enable|disable [--scope user|project] NAME"
+  print -r -- "       ${ZCODER_NAME:-pcoder.psh} mcp test NAME"
+  print -r -- "       ${ZCODER_NAME:-pcoder.psh} mcp trust|untrust"
 }
 
 mcp_cli() {
@@ -1153,7 +1153,7 @@ mcp_cli() {
       if [[ "${1:-}" != --yes ]]; then
         local answer=""
         if ! { print -rn -- "Allow these commands to run whenever zcoder opens this workspace? [y/N]: " > /dev/tty } 2>/dev/null; then
-          print -u2 -- "Error: no terminal to confirm on; after reviewing the file, run '${ZCODER_NAME:-zcoder.zsh} mcp trust --yes'"
+          print -u2 -- "Error: no terminal to confirm on; after reviewing the file, run '${ZCODER_NAME:-pcoder.psh} mcp trust --yes'"
           return 1
         fi
         read -r answer < /dev/tty

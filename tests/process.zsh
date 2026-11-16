@@ -12,19 +12,19 @@ ui_poll_activity() { zselect -t 1 2>/dev/null; return 0; }
 process_test_root="$TEST_TMP/process space's"
 zf_mkdir -p -- "$process_test_root"
 ZCODER_MAX_TOOL_OUTPUT=1000
-tool_process_run "$process_test_root" 5 zsh -fc 'print -r -- "$PWD"; print -r -- "$1"; print -r -- stderr >&2; exit 7' worker '$(print unsafe); * literal'
+tool_process_run "$process_test_root" 5 psh -fc 'print -r -- "$PWD"; print -r -- "$1"; print -r -- stderr >&2; exit 7' worker '$(print unsafe); * literal'
 assert_eq 7 "$?" "native tool workers preserve nonzero exit codes"
 assert_contains "$TOOL_PROCESS_OUTPUT" "$process_test_root" "native tool workers enter a directory containing spaces and quotes"
 assert_contains "$TOOL_PROCESS_OUTPUT" '$(print unsafe); * literal' "worker argv is never reparsed as shell source"
 assert_contains "$TOOL_PROCESS_OUTPUT" stderr "worker output combines stdout and stderr"
 assert_eq '' "$TOOL_PROCESS_NAME" "completed workers release their PTY identity"
 assert_eq '' "$TOOL_PROCESS_PID" "completed workers release their process-group identity"
-tool_process_run "$process_test_root/missing" 5 zsh -fc 'print should-not-run'
+tool_process_run "$process_test_root/missing" 5 psh -fc 'print should-not-run'
 assert_eq 125 "$?" "a vanished working directory is not mistaken for a search with no matches"
 assert_not_contains "$TOOL_PROCESS_OUTPUT" should-not-run "worker setup failure cannot execute the command"
 
 ZCODER_MAX_TOOL_OUTPUT=120
-tool_process_run "$process_test_root" 5 zsh -fc 'print -rn HEAD; print -rn -- ${(pl:10000::x:)}; print -rn TAIL'
+tool_process_run "$process_test_root" 5 psh -fc 'print -rn HEAD; print -rn -- ${(pl:10000::x:)}; print -rn TAIL'
 assert_success "large command output is collected through bounded reads" $?
 assert_contains "$TOOL_PROCESS_OUTPUT" HEAD "bounded output retains its beginning"
 assert_contains "$TOOL_PROCESS_OUTPUT" TAIL "bounded output retains its ending"
@@ -33,13 +33,13 @@ assert_eq 1 "$TOOL_PROCESS_OUTPUT_TRUNCATED" "bounded output reports incomplete 
 assert_success "bounded output respects the configured character limit" $(( ${#TOOL_PROCESS_OUTPUT} <= 120 ? 0 : 1 ))
 ZCODER_MAX_TOOL_OUTPUT=32768
 
-tool_process_run "$process_test_root" 1 zsh -fc 'trap "" TERM; print waiting; sleep 20'
+tool_process_run "$process_test_root" 1 psh -fc 'trap "" TERM; print waiting; sleep 20'
 assert_eq 124 "$?" "interactive tool deadlines need no external timeout utility"
 assert_eq 1 "$TOOL_PROCESS_TIMED_OUT" "deadline expiry remains distinct from cancellation"
 assert_contains "$TOOL_PROCESS_OUTPUT" waiting "timeout retains partial command output"
 assert_eq '' "$TOOL_PROCESS_BASE" "timeout removes worker storage ownership"
 
-tool_process_run "$process_test_root" 5 zsh -fc 'kill -KILL $PPID'
+tool_process_run "$process_test_root" 5 psh -fc 'kill -KILL $PPID'
 assert_failure "a crashed worker cannot publish a successful tool result" $?
 assert_contains "$TOOL_PROCESS_ERROR" 'without a complete result' "worker crashes report missing completion"
 tool_process_cleanup; tool_process_cleanup
@@ -61,7 +61,7 @@ process_pty_wait() {
 }
 process_pty_run() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/process_ui.zsh" "$PROJECT_DIR" "$process_pty_base"
+  exec psh -f "$TEST_DIR/fixtures/process_ui.zsh" "$PROJECT_DIR" "$process_pty_base"
 }
 TERM=xterm-256color zpty -b process-ui process_pty_run
 assert_success "responsive tool fixture starts in real curses" $?

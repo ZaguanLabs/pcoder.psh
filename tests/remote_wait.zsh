@@ -11,7 +11,7 @@ remote_wait_for() {
 }
 remote_wait_fixture() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/remote_wait_ui.zsh" "$PROJECT_DIR" "$remote_wait_base"
+  exec psh -f "$TEST_DIR/fixtures/remote_wait_ui.zsh" "$PROJECT_DIR" "$remote_wait_base"
 }
 TERM=xterm-256color zpty -b remote-wait remote_wait_fixture
 remote_wait_for "$remote_wait_base.started" success:/v1/events

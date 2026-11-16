@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 # Real curses/input fixture, controlled only through its PTY and private files.
 emulate -R zsh
 setopt extendedglob

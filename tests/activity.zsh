@@ -174,7 +174,7 @@ activity_pty_wait() {
 }
 activity_pty_run() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/activity_ui.zsh" "$PROJECT_DIR" "$activity_pty_base"
+  exec psh -f "$TEST_DIR/fixtures/activity_ui.zsh" "$PROJECT_DIR" "$activity_pty_base"
 }
 TERM=xterm-256color zpty -b activity-ui activity_pty_run
 assert_success "real curses activity fixture starts in a PTY" $?

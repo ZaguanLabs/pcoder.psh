@@ -224,7 +224,7 @@ must support document reading; older servers report that an update is needed.
 
 ## Select and copy chat text
 
-With the optional native runtime (`make native`), left-click and drag over text
+With psh’s bundled zdraw module, left-click and drag over text
 in the chat. The highlight stays inside the chat content area even when you drag
 into the sidebar, prompt, or beyond its borders. No Shift modifier is needed.
 A gesture that starts outside chat text cannot select the chat.

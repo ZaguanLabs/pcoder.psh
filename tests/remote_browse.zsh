@@ -11,15 +11,15 @@ remote_browse_wait() {
 }
 remote_browse_server() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/remote_browse_server.zsh" "$PROJECT_DIR" "$browse_base"
+  exec psh -f "$TEST_DIR/fixtures/remote_browse_server.zsh" "$PROJECT_DIR" "$browse_base"
 }
 remote_browse_fixture() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/remote_browse_ui.zsh" "$PROJECT_DIR" "$browse_base"
+  exec psh -f "$TEST_DIR/fixtures/remote_browse_ui.zsh" "$PROJECT_DIR" "$browse_base"
 }
 remote_browse_application() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/remote_application.zsh" "$PROJECT_DIR" "$browse_base"
+  exec psh -f "$TEST_DIR/fixtures/remote_application.zsh" "$PROJECT_DIR" "$browse_base"
 }
 remote_browse_server >/dev/null 2> "$browse_base.server_log" &
 typeset -g browse_server_pid=$!

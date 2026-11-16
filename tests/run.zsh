@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 
 setopt EXTENDED_GLOB NO_NOMATCH
 zmodload zsh/datetime zsh/files zsh/mapfile zsh/stat zsh/system zsh/zselect
@@ -14,7 +14,7 @@ for test_option in "$@"; do
   case $test_option in
     --fast) TEST_MODE=fast ;;
     --timings) TEST_TIMINGS=1 ;;
-    *) print -ru2 -- "Usage: zsh tests/run.zsh [--fast] [--timings]"; exit 2 ;;
+    *) print -ru2 -- "Usage: psh tests/run.zsh [--fast] [--timings]"; exit 2 ;;
   esac
 done
 typeset -F TEST_STARTED=$EPOCHREALTIME TEST_SECTION_STARTED=$EPOCHREALTIME
@@ -133,12 +133,12 @@ for resume_case in missing malformed acp server; do
     acp) resume_args+=(123_456 --acp) ;;
     server) resume_args+=(123_456 --server resume-probe) ;;
   esac
-  resume_output=$(zsh -f "$PROJECT_DIR/zcoder.zsh" "${resume_args[@]}" 2>&1)
+  resume_output=$(psh -f "$PROJECT_DIR/pcoder.psh" "${resume_args[@]}" 2>&1)
   assert_eq 2 "$?" "CLI rejects $resume_case resume arguments"
   assert_contains "$resume_output" 'Error:' "CLI explains $resume_case resume arguments"
 done
 resume_output=$(ZCODER_HOME="$TEST_TMP/resume-cli" ZCODER_RELAY=off \
-  zsh -f "$PROJECT_DIR/zcoder.zsh" --resume 9999999999_999 --prompt hello --workspace "$TEST_TMP" --no-warmup 2>&1)
+  psh -f "$PROJECT_DIR/pcoder.psh" --resume 9999999999_999 --prompt hello --workspace "$TEST_TMP" --no-warmup 2>&1)
 assert_eq 1 "$?" 'one-shot resume refuses a missing session before sending a prompt'
 assert_contains "$resume_output" 'could not resume 9999999999_999' 'a missing session error identifies the requested ID'
 assert_not_contains "$resume_output" 'To continue this session' 'failed startup does not advertise a resumable session'
@@ -152,7 +152,7 @@ for headless_mode in server acp; do
   [[ "$headless_mode" == server ]] && headless_args=(--server startup-probe)
   headless_stderr="$TEST_TMP/${headless_mode}-startup.stderr"
   ZCODER_HOME="$TEST_TMP/${headless_mode}-startup-home" REMOTE_MODE=local \
-    zsh -f "$TEST_DIR/fixtures/headless_startup.zsh" "$PROJECT_DIR/zcoder.zsh" \
+    psh -f "$TEST_DIR/fixtures/headless_startup.zsh" "$PROJECT_DIR/pcoder.psh" \
     "${headless_args[@]}" --profile coding --workspace "$TEST_TMP" 2>| "$headless_stderr"
   assert_success "$headless_mode starts without terminal code and preserves required runtime behavior" $?
   assert_eq "" "${mapfile[$headless_stderr]:-}" "$headless_mode startup, worker, and cleanup produce no errors"
@@ -237,7 +237,7 @@ acp_smoke_stderr="$TEST_TMP/acp-smoke.stderr"
 acp_smoke_input=$'{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":1,"clientCapabilities":{}}}\n'
 zjson_quote "$TEST_TMP"; acp_smoke_cwd="$REPLY"
 acp_smoke_input+="{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"session/new\",\"params\":{\"cwd\":${acp_smoke_cwd},\"mcpServers\":[]}}"
-acp_smoke_output="$(print -r -- "$acp_smoke_input" | ZCODER_HOME="$acp_smoke_home" "$PROJECT_DIR/zcoder.zsh" --acp --workspace "$TEST_TMP" 2>| "$acp_smoke_stderr")"
+acp_smoke_output="$(print -r -- "$acp_smoke_input" | ZCODER_HOME="$acp_smoke_home" "$PROJECT_DIR/pcoder.psh" --acp --workspace "$TEST_TMP" 2>| "$acp_smoke_stderr")"
 acp_smoke_exit=$?
 acp_smoke_lines=("${(@f)acp_smoke_output}")
 assert_success "standalone ACP stdio mode exits cleanly at client EOF" "$acp_smoke_exit"
@@ -282,7 +282,7 @@ zf_rm -f -- "$TEST_TMP/acp-worker.out"
 assert_eq "0" "${acp_worker_probe_lines[1]:-missing}" "ACP prompt worker runs under native Zsh without special-parameter collisions"
 assert_eq "2" "${acp_worker_probe_lines[2]:-missing}" "ACP prompt worker persists the completed turn"
 assert_contains "${acp_worker_probe_lines[3]:-}" "persisted through ACP worker" "ACP session reload observes worker-owned state"
-acp_help="$($PROJECT_DIR/zcoder.zsh --help)"
+acp_help="$($PROJECT_DIR/pcoder.psh --help)"
 assert_contains "$acp_help" "--acp" "command help exposes ACP stdio mode"
 
 input_reset
@@ -428,7 +428,7 @@ relay_peer_workspace="$TEST_TMP/peer-project"
 relay_peer_ready="$TEST_TMP/relay-peer.ready"
 TEST_RELAY_PEER_STOP="$TEST_TMP/relay-peer.stop"
 relay_peer_received="$TEST_TMP/relay-peer.received"
-zsh "${PROJECT_DIR}/tests/fixtures/relay_peer.zsh" \
+psh "${PROJECT_DIR}/tests/fixtures/relay_peer.zsh" \
   "$ZCODER_RELAY_DIR" "$relay_peer_runtime" "$relay_peer_workspace" \
   "$relay_peer_ready" "$TEST_RELAY_PEER_STOP" "$relay_peer_received" &
 TEST_RELAY_PEER_PID=$!
@@ -541,7 +541,7 @@ zcoder_debug unit_test $'first line\nsecond line'
 assert_contains "${mapfile[$ZCODER_DEBUG_LOG]}" 'unit_test first line\nsecond line' "debug log escapes multiline records"
 assert_eq "$ZCODER_DEBUG_FD" "${ZDRAW_UI_DEBUG_FD:-}" 'toolkit diagnostics reuse the protected debug descriptor'
 (
-  source "$PROJECT_DIR/vendor/zdraw/lib/zdraw-ui.zsh"
+  zcoder_psh_script zdraw/lib/zdraw-ui.zsh && source "$REPLY"
   typeset -A zdraw_ui_style
   zdraw-ui-style normal not-a-style
 ) 2> "$TEST_TMP/zdraw-debug.stderr"
@@ -961,7 +961,7 @@ kill -0 "$modern_broker_pid" 2>/dev/null
 assert_failure "MCP shutdown reaps the modern broker" $?
 kill -0 "$legacy_broker_pid" 2>/dev/null
 assert_failure "MCP shutdown reaps the legacy broker" $?
-cli_output="$(mcp_cli add --scope project --env FIXTURE_MODE=cli cli-server -- zsh "$mcp_fixture" legacy)"
+cli_output="$(mcp_cli add --scope project --env FIXTURE_MODE=cli cli-server -- psh "$mcp_fixture" legacy)"
 assert_success "MCP CLI adds a project-scoped stdio server" $?
 assert_contains "$cli_output" "Added MCP server 'cli-server'" "MCP CLI reports the added server"
 mcp_load
@@ -980,7 +980,7 @@ mcp_load
 assert_eq "changed" "$MCP_PROJECT_TRUST" "any edit to an approved project configuration revokes the approval"
 [[ -z "${MCP_RAW[planted]:-}" ]]
 assert_success "servers added after approval do not start" $?
-cli_output="$(mcp_cli add --scope project cli-server -- zsh "$mcp_fixture" legacy)"; mcp_load
+cli_output="$(mcp_cli add --scope project cli-server -- psh "$mcp_fixture" legacy)"; mcp_load
 assert_eq "changed" "$MCP_PROJECT_TRUST" "CLI edits never approve servers someone else added"
 assert_contains "$cli_output" "mcp trust" "CLI edits explain how to approve the project file"
 cli_output="$(mcp_cli trust --yes)"
@@ -3584,7 +3584,7 @@ assert_contains "${AGENT_MESSAGES[2]}" "untrusted report from an external coding
 assert_contains "${AGENT_MESSAGES[2]}" "workspace may have changed" "worker context tells the main agent to inspect current state"
 ZCODER_DELEGATE_HISTORY_CHARS=12000
 
-delegate_async_start "" 0 zsh -c 'print -rn -- '\''{"result":"async delegate"}'\'''
+delegate_async_start "" 0 psh -c 'print -rn -- '\''{"result":"async delegate"}'\'''
 assert_success "delegate worker starts" $?
 for async_poll in {1..100}; do
   delegate_async_ready && break
@@ -3595,7 +3595,7 @@ assert_success "delegate worker result collects" $?
 assert_eq '{"result":"async delegate"}' "$DELEGATE_OUTPUT" "delegate worker preserves structured stdout"
 assert_eq "" "$DELEGATE_PID" "delegate collection clears worker state"
 
-delegate_async_start "" 0 zsh -c 'while true; do sleep 1; done'
+delegate_async_start "" 0 psh -c 'while true; do sleep 1; done'
 assert_success "cancellable delegate worker starts" $?
 for async_poll in {1..100}; do
   [[ -f "${DELEGATE_BASE}.child" ]] && break
@@ -3750,22 +3750,16 @@ if test_integration presentation; then
 fi
 test_section curses
 source "${TEST_DIR}/curses.zsh"
-if test_integration native_setup; then
-  zsh -df "${TEST_DIR}/native_setup.zsh"
-  assert_success "native setup and runtime selection preserve fallback and failure recovery" $?
-  zsh -df "${TEST_DIR}/json_setup.zsh"
-  assert_success "JSON setup preserves pinned sources, offline builds and local edits" $?
-fi
 if test_integration markdown_native; then
-  zsh -df "${TEST_DIR}/markdown_native.zsh"
+  psh -df "${TEST_DIR}/markdown_native.zsh"
   assert_success "optional native Markdown loading and terminal rendering pass" $?
 fi
 if test_integration mouse_selection; then
-  if [[ -r "$PROJECT_DIR/.build/native/current" ]] && (( $+commands[python3] )); then
+  if (( $+commands[python3] )); then
     python3 "$TEST_DIR/selection.py"
     assert_success "chat mouse selection, copy and lifecycle pass through real PTY input" $?
   else
-    print -r -- 'SKIP: mouse selection PTYs require Python and a matching native runtime'
+    print -r -- 'SKIP: mouse selection PTYs require Python'
   fi
 fi
 test_section resize
@@ -3773,20 +3767,20 @@ source "${TEST_DIR}/resize.zsh"
 test_section ui_preferences
 source "${TEST_DIR}/ui_preferences.zsh"
 test_section color_palette
-zsh -df "${TEST_DIR}/color_palette.zsh"
+psh -df "${TEST_DIR}/color_palette.zsh"
 assert_success "color palettes preserve policy and recover from allocation failures" $?
 if test_integration drawing; then
   source "${TEST_DIR}/drawing.zsh"
   source "${TEST_DIR}/diff_ui.zsh"
 fi
 if test_integration picker; then
-  zsh -df "${TEST_DIR}/picker.zsh"
+  psh -df "${TEST_DIR}/picker.zsh"
   assert_success "picker widgets and visual baselines pass in real terminals" $?
 fi
 if test_integration document; then
-  zsh -df "${TEST_DIR}/document.zsh"
+  psh -df "${TEST_DIR}/document.zsh"
   assert_success "document navigation, anchored reflow and visual baselines pass" $?
-  zsh -df "${TEST_DIR}/document_tabs.zsh"
+  psh -df "${TEST_DIR}/document_tabs.zsh"
   assert_success "read-only Markdown tabs work locally and remotely during activity" $?
 fi
 test_section git_status
@@ -3795,7 +3789,7 @@ test_section status
 source "${TEST_DIR}/status.zsh"
 if test_integration process; then
   source "${TEST_DIR}/process.zsh"
-  zsh -df "${TEST_DIR}/tasks.zsh"
+  psh -df "${TEST_DIR}/tasks.zsh"
   assert_success "background tasks preserve approvals, scheduling, and process ownership" $?
 fi
 if test_integration tool_wait; then
@@ -3807,7 +3801,7 @@ fi
 test_section remote_request
 source "${TEST_DIR}/remote_request.zsh"
 if test_integration remote_connections; then
-  zsh -df "${TEST_DIR}/remote_connections.zsh"
+  psh -df "${TEST_DIR}/remote_connections.zsh"
   assert_success "concurrent remote sockets preserve admission, cancellation and cleanup" $?
 fi
 if test_integration remote_wait; then
@@ -3817,7 +3811,7 @@ if test_integration remote_browse; then
   source "${TEST_DIR}/remote_browse.zsh"
 fi
 if test_integration remote_sessions; then
-  zsh -df "${TEST_DIR}/remote_sessions.zsh"
+  psh -df "${TEST_DIR}/remote_sessions.zsh"
   assert_success "real remote servers share local session storage and preserve legacy histories" $?
 fi
 if test_integration models_wait; then
@@ -3827,7 +3821,7 @@ if test_integration context_wait; then
   source "${TEST_DIR}/context_wait.zsh"
 fi
 if test_integration startup; then
-  zsh -df "${TEST_DIR}/startup.zsh"
+  psh -df "${TEST_DIR}/startup.zsh"
   assert_success 'TUI startup paints before preparation and preserves first-use behavior' $?
 fi
 if test_integration tui_integration; then
@@ -3842,7 +3836,7 @@ source "${TEST_DIR}/document_context.zsh"
 test_section input_queue
 source "${TEST_DIR}/input_queue.zsh"
 if test_integration remote_interrupt; then
-  zsh -df "${TEST_DIR}/remote_interrupt.zsh"
+  psh -df "${TEST_DIR}/remote_interrupt.zsh"
   assert_success 'remote Escape takeover preserves queue scope and continues event polling' $?
 fi
 test_section user_shell

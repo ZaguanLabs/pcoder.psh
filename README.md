@@ -1,8 +1,13 @@
-# zcoder.zsh
+# pcoder.psh
 
-**A capable coding agent for Ollama, built almost entirely in Zsh.**
+**A capable coding agent for Ollama, built on [psh](https://github.com/ZaguanLabs/psh).**
 
-zcoder works inside a directory you choose. It can explore a project, read and
+[psh (Performance Shell)](https://github.com/ZaguanLabs/psh) is a
+performance-focused fork of Zsh. It provides the shell and bundled zjson,
+zdraw, and zmdown components that power pcoder’s JSON, terminal interface,
+and Markdown rendering.
+
+pcoder works inside a directory you choose. It can explore a project, read and
 edit files, apply patches, run tests, and keep working through multi-step tasks
 until the job is complete. You get a focused terminal interface, local model
 execution, and a clear approval prompt before any shell command runs.
@@ -14,7 +19,7 @@ execution, and a clear approval prompt before any shell command runs.
 ![zcoder.zsh 0.19.3 greeting screen](images/zcoder-0.19.3-greeting.png)
 
 It is deliberately small and inspectable. Application logic—including HTTP,
-JSON, session storage, tool dispatch, and the interface—uses native Zsh modules.
+JSON, session storage, tool dispatch, and the interface—uses native psh modules.
 External tools are used where they are the actual capability: `rg` for search,
 `git` or `patch` for patches, and your shell for approved commands.
 
@@ -31,20 +36,23 @@ External tools are used where they are the actual capability: `rg` for search,
 - **Warm on arrival.** The interactive TUI loads the model and stable project context while you type.
 - **Coordinates local work.** Running instances on the same machine can discover each other and hand off tasks through a private Unix socket relay.
 - **Available across your network.** Run the agent beside a remote workspace and control it from your local TUI.
-- **Available to ACP clients.** Run zcoder as an External Agent locally or bridge ACP to a remote zcoder server.
-- **No application framework.** Just Zsh 5.8+, its standard modules, and a handful of purpose-specific tools.
+- **Available to ACP clients.** Run pcoder as an External Agent locally or bridge ACP to a remote zcoder server.
+- **No application framework.** Just psh 1.0.0-rc2 or newer, its bundled modules, and a handful of purpose-specific tools.
 
 ## Try it
 
-You need Zsh 5.8 or newer, a running Ollama server, a tool-capable model, and
-`ripgrep`. Install `git` or `patch` if you want the agent to apply changes.
+Install [psh 1.0.0-rc2 or newer](https://github.com/ZaguanLabs/psh) with its
+bundled components before running pcoder; see the psh repository for its
+installation instructions. You also need a running Ollama server, a
+tool-capable model, and `ripgrep`. Install `git` or `patch` if you want the
+agent to apply changes.
 
 ```sh
 ollama pull qwen3-coder
-git clone https://github.com/ZaguanLabs/zcoder.zsh.git
-cd zcoder.zsh
+git clone https://github.com/ZaguanLabs/pcoder.psh.git
+cd pcoder.psh
 make
-./zcoder.zsh --model qwen3-coder --workspace /path/to/project
+./pcoder.psh --model qwen3-coder --workspace /path/to/project
 ```
 
 Then ask for a concrete outcome:
@@ -53,20 +61,13 @@ Then ask for a concrete outcome:
 Find the cause of the failing tests, make the smallest safe fix, and verify it.
 ```
 
-`make` initializes the pure-Zsh zjson dependency and prepares a private Zsh
-runtime with the pinned zdraw and zmdown modules for the enhanced interface and
-Markdown rendering. It needs a C toolchain,
-Autoconf, ncurses development headers and download tools; see
-[build requirements](docs/getting-started.md#enhanced-curses-module). It requires
-no administrator access and leaves your system shell unchanged.
-
-To use the stock renderer, run `make compile` and launch the script. This
-initializes zjson and compiles Zsh libraries without building native modules.
+`make` checks and compiles the application libraries using psh. The required
+zjson, zdraw, and zmdown components are included with psh.
 
 Prefer a non-interactive run? Use `--prompt`:
 
 ```sh
-./zcoder.zsh --model qwen3-coder --workspace . \
+./pcoder.psh --model qwen3-coder --workspace . \
   --prompt "Inspect this project and explain how it is organized"
 ```
 
@@ -83,10 +84,10 @@ index of your project and answers with the right file and the exact source
 range in one tool call. Indexing and queries stay on your machine, just like
 your Ollama models.
 
-zcoder speaks MCP natively, so adding it takes one command:
+pcoder speaks MCP natively, so adding it takes one command:
 
 ```sh
-./zcoder.zsh mcp add bitlantern -- "$HOME/.local/bin/bitlantern" mcp
+./pcoder.psh mcp add bitlantern -- "$HOME/.local/bin/bitlantern" mcp
 ```
 
 What that buys a local model:
@@ -95,12 +96,12 @@ What that buys a local model:
   without loading it, `symbol_search` lands on a definition's exact lines, and
   `symbol_references` replaces broad grep sweeps for callers and usages.
 - **Longer runs between compactions.** A leaner history leaves room for the
-  actual task, so multi-step work gets further before zcoder has to summarize,
+  actual task, so multi-step work gets further before pcoder has to summarize,
   and less detail is lost when it does.
 - **Quicker turns on modest hardware.** Fewer prompt tokens means less prompt
   evaluation for Ollama on every request.
 - **Routing small models can follow.** Project-designated MCP routing in
-  `AGENTS.md` takes precedence over zcoder's built-in search workflow, and the
+  `AGENTS.md` takes precedence over pcoder's built-in search workflow, and the
   system prompt maps short tool names to their namespaced MCP functions.
 
 Bit Lantern publishes reproducible benchmarks against shell-only navigation.
@@ -120,7 +121,7 @@ configuration.
 
 ## Built for networks you control
 
-zcoder is made for machines you already trust: your workstation, your home
+pcoder is made for machines you already trust: your workstation, your home
 lab, the build server on your LAN, and your own Ollama host. Designing for that
 setting keeps it small, fast, and easy to deploy:
 
@@ -141,12 +142,12 @@ your network, use an SSH tunnel or a VPN. See
 
 ## Remote workspaces
 
-zcoder can also run headlessly on the machine that owns the model and workspace.
+pcoder can also run headlessly on the machine that owns the model and workspace.
 The local instance becomes a thin client: prompts travel to the server, every
 tool runs remotely, and command approvals return to your local terminal.
 
 For browser access, [zcoder-web](https://github.com/ZaguanLabs/zcoder-web) is a
-lightweight web interface that connects to one or more zcoder.zsh servers.
+lightweight web interface that connects to one or more pcoder.psh servers.
 Manage remote sessions, send prompts, and approve commands from your desktop
 or phone.
 
@@ -154,7 +155,7 @@ See the [remote-agent guide](docs/remote.md) for setup and security guidance.
 
 ## ACP clients
 
-Run `./zcoder.zsh --acp` to expose zcoder as an Agent Client Protocol v1
+Run `./pcoder.psh --acp` to expose pcoder as an Agent Client Protocol v1
 agent over stdio. It can use the local runtime directly or connect through the
 existing authenticated remote API with `--acp --connect HOST`.
 

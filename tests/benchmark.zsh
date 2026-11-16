@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 # Opt-in microbenchmarks: no Ollama, terminal, filesystem writes, or timing gates.
 emulate -R zsh
 setopt extendedglob

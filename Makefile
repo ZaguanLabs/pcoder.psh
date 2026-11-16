@@ -1,56 +1,29 @@
 .DEFAULT_GOAL := all
-.PHONY: all setup native json check test test-fast test-visual benchmark benchmark-startup model-eval compile clean curses markdown
+.PHONY: all setup native json check test test-fast test-visual benchmark benchmark-startup model-eval compile clean
 
-all: native compile
+all: compile
+setup native json: check
 
-setup: all
-
-native: export MAKE := $(MAKE)
-native: check
-	zsh -df scripts/setup-native.zsh
-
-json:
-	zsh -df scripts/setup-json.zsh
-
-check: json
-	zsh -fc 'for f in zcoder.zsh chat.sh lib/*.zsh scripts/*.zsh tests/*.zsh tests/fixtures/*.zsh vendor/zjson/zjson.zsh vendor/zjson/lib/*.zsh; do zsh -n "$$f" || exit $$?; done'
-
-# Advanced builds for an installed shell retain the explicit source-tree path.
-ifdef ZSH_BUILD_ROOT
-curses: check
-	zsh -df scripts/build-curses.zsh
-
-markdown: check
-	zsh -df scripts/build-markdown.zsh
-else
-curses markdown: native
-endif
+check:
+	psh -fc 'for f in pcoder.psh chat.sh lib/*.zsh scripts/*.zsh tests/*.zsh tests/fixtures/*.zsh; do psh -n "$$f" || exit $$?; done'
 
 test: check
-	zsh tests/run.zsh
+	psh -df tests/run.zsh
 
 test-fast: check
-	zsh tests/run.zsh --fast
+	psh -df tests/run.zsh --fast
 
 test-visual: check
-	ZCODER_REQUIRE_VISUALS=1 zsh -df tests/picker.zsh
-	ZCODER_REQUIRE_VISUALS=1 zsh -df tests/document.zsh
+	ZCODER_REQUIRE_VISUALS=1 psh -df tests/picker.zsh
+	ZCODER_REQUIRE_VISUALS=1 psh -df tests/document.zsh
 
 benchmark: check
-	zsh -df tests/benchmark.zsh
-
+	psh -df tests/benchmark.zsh
 benchmark-startup: check
-	zsh -df tests/startup.zsh --benchmark
-
+	psh -df tests/startup.zsh --benchmark
 model-eval: check
-	zsh tests/model_eval.zsh
-
-# Precompile libraries to zsh wordcode (.zwc). `source` picks a .zwc up
-# automatically when it is not older than its .zsh, roughly halving launch
-# time; a stale .zwc is ignored, so recompiling is an optimization, never a
-# correctness requirement.
+	psh -df tests/model_eval.zsh
 compile: check
-	zsh -fc 'for f in lib/*.zsh vendor/zjson/zjson.zsh vendor/zjson/lib/*.zsh; do zcompile -R "$$f" || exit $$?; done'
-
+	psh -fc 'for f in lib/*.zsh; do zcompile -R "$$f" || exit $$?; done'
 clean:
-	rm -f lib/*.zwc vendor/zjson/*.zwc vendor/zjson/lib/*.zwc
+	rm -f lib/*.zwc

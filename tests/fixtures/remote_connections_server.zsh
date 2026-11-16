@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 # Real socket admission, dispatch, response writers and turn workers. Only the
 # model and session persistence are fixtures; no Ollama or curses is involved.
 emulate -R zsh

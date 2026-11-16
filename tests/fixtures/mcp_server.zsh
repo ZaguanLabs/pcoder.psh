@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 
 # Deterministic stdio MCP server used by the client tests. It deliberately
 # avoids sharing zcoder's JSON code so the fixture can catch wire mistakes.

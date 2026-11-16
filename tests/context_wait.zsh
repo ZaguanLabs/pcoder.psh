@@ -11,11 +11,11 @@ context_wait() {
 }
 context_server() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/context_server.zsh" "$PROJECT_DIR" "$context_base"
+  exec psh -f "$TEST_DIR/fixtures/context_server.zsh" "$PROJECT_DIR" "$context_base"
 }
 context_fixture() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/context_ui.zsh" "$PROJECT_DIR" "$context_base"
+  exec psh -f "$TEST_DIR/fixtures/context_ui.zsh" "$PROJECT_DIR" "$context_base"
 }
 context_server >/dev/null 2> "$context_base.server_log" &
 typeset -g context_server_pid=$!

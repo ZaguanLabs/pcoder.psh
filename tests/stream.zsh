@@ -37,7 +37,7 @@ done
 
 # Use a fresh shell: an earlier non-streaming decode can cache the Unicode
 # validation pattern with EXTENDED_GLOB enabled and hide option dependencies.
-stream_unicode_result="$(zsh -fc '
+stream_unicode_result="$(psh -fc '
   setopt extendedglob
   source "$1/lib/json.zsh"
   source "$1/lib/stream.zsh"
@@ -196,7 +196,7 @@ stream_pty_wait() {
 }
 stream_pty_run() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/stream_ui.zsh" "$PROJECT_DIR" "$stream_pty_base"
+  exec psh -f "$TEST_DIR/fixtures/stream_ui.zsh" "$PROJECT_DIR" "$stream_pty_base"
 }
 TERM=xterm-256color zpty -b stream-ui stream_pty_run
 assert_success "native HTTP streaming fixture starts in a real terminal" $?

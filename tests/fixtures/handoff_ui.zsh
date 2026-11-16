@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 setopt extendedglob
 typeset fixture_root=$1 fixture_base=$2 fixture_mode=$3 fixture_action=$4

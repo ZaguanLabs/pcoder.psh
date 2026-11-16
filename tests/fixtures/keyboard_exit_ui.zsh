@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 setopt extendedglob
 zmodload zsh/terminfo zsh/datetime zsh/mapfile || exit 1

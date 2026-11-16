@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 # Real entrypoint and terminal; only model work is replaced. Optional barriers
 # let the parent type while workspace preparation is still pending.
 emulate -R zsh
@@ -86,6 +86,6 @@ source() {
   return 0
 }
 
-builtin source "$startup_root/zcoder.zsh" --workspace "$startup_base.workspace" \
+builtin source "$startup_root/pcoder.psh" --workspace "$startup_base.workspace" \
   --context-window 32768 --no-warmup --deny-commands
 print -r -- "$?" > "$startup_base.exit"

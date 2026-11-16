@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 setopt extendedglob
 zmodload zsh/terminfo zsh/datetime zsh/mapfile zsh/system zsh/stat zsh/files zsh/net/tcp zsh/zselect
@@ -26,7 +26,7 @@ if [[ $fixture_backend == remote ]]; then
 fi
 typeset -g zdraw_ui_fixture=''
 if [[ $ZCODER_CURSES_COMMAND == zdraw ]]; then
-  source "$fixture_root/vendor/zdraw/lib/zdraw-fixture.zsh"
+  zcoder_psh_script zdraw/lib/zdraw-fixture.zsh && source "$REPLY"
 fi
 state_init() { return 0; }
 agent_warmup_start() { return 0; }

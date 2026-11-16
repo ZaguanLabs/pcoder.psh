@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 # Also an opt-in first-frame / first-input benchmark, without model requests.
 emulate -R zsh
 setopt extendedglob
@@ -40,7 +40,7 @@ startup_wait() {
 startup_run() {
   trap - EXIT INT TERM
   export TERM=xterm-256color
-  exec zsh -df "$startup_root/tests/fixtures/tui_startup.zsh" "$startup_root" "$startup_base" "$startup_backend"
+  exec psh -df "$startup_root/tests/fixtures/tui_startup.zsh" "$startup_root" "$startup_base" "$startup_backend"
 }
 typeset startup_backend startup_action
 typeset -F startup_deadline

@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 setopt extendedglob no_monitor no_notify
 zmodload zsh/datetime zsh/system zsh/files zsh/mapfile zsh/stat zsh/zselect zsh/zpty
@@ -138,7 +138,7 @@ tasks_cleanup
 check equal "${#TASK_IDS}" 0
 
 # Kill the actual owner with SIGKILL: EXIT traps cannot make this test pass.
-zsh -df "$root/tests/fixtures/tasks_owner.zsh" "$root" "$test_base" &
+psh -df "$root/tests/fixtures/tasks_owner.zsh" "$root" "$test_base" &
 typeset -g owner=$!
 check wait_file "$test_base/owner-ready"
 check wait_file "$test_base/orphan-child"
@@ -162,7 +162,7 @@ tui_wait() {
   print -ru2 -- "TUI output: ${(V)tui_output[-2000,-1]}"
   return 1
 }
-tui_start() { trap - EXIT INT TERM; exec zsh -df "$root/tests/fixtures/tasks_ui.zsh" "$root" "$tui_base"; }
+tui_start() { trap - EXIT INT TERM; exec psh -df "$root/tests/fixtures/tasks_ui.zsh" "$root" "$tui_base"; }
 TERM=xterm-256color zpty -b tasks-ui tui_start
 zpty -w tasks-ui 'Start a background job'
 check tui_wait "$tui_base.idle"

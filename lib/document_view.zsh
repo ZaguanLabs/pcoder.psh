@@ -6,9 +6,7 @@ ui_document_helpers_load() {
   emulate -L zsh
   (( UI_DOCUMENT_HELPERS < 0 )) || return 0
   UI_DOCUMENT_HELPERS=0
-  local library="${${(%):-%x}:A:h:h}/vendor/zdraw/lib/zdraw-document.zsh"
-  [[ -r $library ]] || return 0
-  source "$library" || return 0
+  zcoder_psh_script zdraw/lib/zdraw-document.zsh && source "$REPLY" || return 0
   UI_DOCUMENT_HELPERS=1
 }
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 # Opt-in JSON measurements, without Ollama or terminal setup. To compare a
 # source snapshot, set ZJSON_BENCH_ROOT to its directory (containing zjson.zsh).
 emulate -R zsh

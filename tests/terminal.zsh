@@ -234,10 +234,10 @@ terminal_pty_wait() {
 }
 terminal_pty_run() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/terminal_ui.zsh" "$PROJECT_DIR" "$terminal_pty_base" "$terminal_pty_mode"
+  exec psh -f "$TEST_DIR/fixtures/terminal_ui.zsh" "$PROJECT_DIR" "$terminal_pty_base" "$terminal_pty_mode"
 }
 typeset -a terminal_pty_modes=(stock)
-terminal_input_features=$(zsh -dfc 'source "$1/lib/curses.zsh"; source "$1/lib/terminal.zsh"; ZCODER_CURSES=auto zcoder_curses_load "$1" || exit; terminal_detect_input; print -r -- "$TERMINAL_NOREFRESH_INPUT:$TERMINAL_CAN_PASTE:$TERMINAL_EVENT_POLL"' zcoder-test "$PROJECT_DIR")
+terminal_input_features=$(psh -dfc 'source "$1/lib/curses.zsh"; source "$1/lib/terminal.zsh"; ZCODER_CURSES=auto zcoder_curses_load "$1" || exit; terminal_detect_input; print -r -- "$TERMINAL_NOREFRESH_INPUT:$TERMINAL_CAN_PASTE:$TERMINAL_EVENT_POLL"' zcoder-test "$PROJECT_DIR")
 terminal_has_norefresh=${terminal_input_features%%:*}
 [[ $terminal_has_norefresh == 1 ]] && terminal_pty_modes+=(auto)
 for terminal_pty_mode in "${terminal_pty_modes[@]}"; do
@@ -289,7 +289,7 @@ for terminal_pty_mode in "${terminal_pty_modes[@]}"; do
   terminal_expected_sync=0:0
   # Older zdraw builds still exercise the legacy path.
   if [[ $terminal_pty_mode == auto ]]; then
-    terminal_expected_sync=$(zsh -dfc 'source "$1/lib/curses.zsh"; source "$1/lib/terminal.zsh"; ZCODER_CURSES=auto zcoder_curses_load "$1" || exit; terminal_detect_input; print -r -- "$TERMINAL_CAN_SYNC:$TERMINAL_CAN_SYNC"' zcoder-test "$PROJECT_DIR")
+    terminal_expected_sync=$(psh -dfc 'source "$1/lib/curses.zsh"; source "$1/lib/terminal.zsh"; ZCODER_CURSES=auto zcoder_curses_load "$1" || exit; terminal_detect_input; print -r -- "$TERMINAL_CAN_SYNC:$TERMINAL_CAN_SYNC"' zcoder-test "$PROJECT_DIR")
   fi
   zpty -w -n terminal-ui $'draft\e[200~line1\nline2界e\u0301\e[201~'
   terminal_pty_wait "$terminal_pty_base.draft" $'draftline1\nline2界e\u0301'
@@ -375,5 +375,5 @@ for terminal_pty_mode in "${terminal_pty_modes[@]}"; do
   zpty -d terminal-ui
 done
 unfunction terminal_test_feed terminal_pty_wait terminal_pty_run
-zsh -df "$TEST_DIR/keyboard_exit.zsh"
+psh -df "$TEST_DIR/keyboard_exit.zsh"
 assert_success 'enhanced keyboard exit leaves no release bytes after startup or resume' $?

@@ -1,5 +1,6 @@
 # Application styles and bounded row drawing; curses retains screen ownership.
-source "${${(%):-%x}:A:h:h}/vendor/zdraw/lib/zdraw-color.zsh"
+(( $+functions[zcoder_psh_script] )) || source "${${(%):-%x}:A:h}/psh.zsh" || return 1
+zcoder_psh_script zdraw/lib/zdraw-color.zsh && source "$REPLY" || return 1
 typeset -g UI_COLOR_MODE=basic UI_BORDER_MODE=plain
 typeset -gi UI_STYLED_SPANS=0 UI_WIDE_SPANS=0 UI_CLIPPED_SPANS=0 UI_SPAN_FALLBACKS=0
 typeset -gA UI_COLOR_INFO=() UI_THEME_COLORS=() UI_STYLE_CACHE=()

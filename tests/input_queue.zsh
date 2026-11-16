@@ -280,7 +280,7 @@ input_queue_pty_tests() {
   local -F deadline=0
   input_queue_fixture() {
     trap - EXIT INT TERM
-    exec zsh -f "$TEST_DIR/fixtures/input_queue_ui.zsh" "$PROJECT_DIR" "$base"
+    exec psh -f "$TEST_DIR/fixtures/input_queue_ui.zsh" "$PROJECT_DIR" "$base"
   }
   input_queue_wait() {
     local file="$1" expected="$2"
@@ -352,7 +352,7 @@ input_queue_acp_tests() {
   local -F deadline=$(( EPOCHREALTIME + 10 ))
   coproc {
     trap - EXIT INT TERM
-    exec zsh -f "$TEST_DIR/fixtures/input_queue_acp.zsh" "$PROJECT_DIR" "$base"
+    exec psh -f "$TEST_DIR/fixtures/input_queue_acp.zsh" "$PROJECT_DIR" "$base"
   }
   queue_pid=$!
   input_queue_acp_wait() {

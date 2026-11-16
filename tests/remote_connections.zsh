@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 emulate -R zsh
 setopt extendedglob
 zmodload zsh/files zsh/mapfile zsh/datetime zsh/system zsh/net/tcp zsh/zselect
@@ -65,7 +65,7 @@ collect_response() {
 request() {
   http_request "$1" "$2" "${3:-}" "$endpoint" 'Authorization: Bearer fixture_connection_token'
 }
-zsh -df "$root/tests/fixtures/remote_connections_server.zsh" "$root" "$base" > "$base.log" 2>&1 &
+psh -df "$root/tests/fixtures/remote_connections_server.zsh" "$root" "$base" > "$base.log" 2>&1 &
 server_pid=$!
 check wait_present endpoint
 endpoint="${mapfile[$base.endpoint]}"; endpoint=${endpoint%$'\n'}; port=${endpoint##*:}

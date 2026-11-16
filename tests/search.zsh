@@ -103,8 +103,8 @@ search_tests() {
   # A producer that remains alive after the cap makes ownership observable:
   # returning a partial result must terminate and reap it, not leave it running.
   mapfile[$fixture/producer.zsh]=$'zmodload zsh/system\nprint -r -- "$sysparams[pid]" >| "$1/pid"\nfor i in {1..105}; do print -rn -- "$1/workspace/many/$i"$\'\\0\'; done\nread -r ignored\n'
-  command zsh -df "$ZCODER_SEARCH_SCRIPT" "$ZCODER_WORKSPACE" files 9999 0 512 "$fixture/producer.err" 101 \
-    zsh -df "$fixture/producer.zsh" "$fixture" >| "$fixture/producer.out"
+  command psh -df "$ZCODER_SEARCH_SCRIPT" "$ZCODER_WORKSPACE" files 9999 0 512 "$fixture/producer.err" 101 \
+    psh -df "$fixture/producer.zsh" "$fixture" >| "$fixture/producer.out"
   assert_success 'bounded collector stops a producer that keeps its pipe open' $?
   result="${mapfile[$fixture/pid]}"
   kill -0 "$result" 2>/dev/null

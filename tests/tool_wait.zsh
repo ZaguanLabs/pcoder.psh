@@ -13,7 +13,7 @@ tool_wait_pty_wait() {
 }
 tool_wait_pty_run() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/$wait_pty_fixture" "$PROJECT_DIR" "$wait_pty_base"
+  exec psh -f "$TEST_DIR/fixtures/$wait_pty_fixture" "$PROJECT_DIR" "$wait_pty_base"
 }
 wait_pty_base="$TEST_TMP/patch-wait"; wait_pty_fixture=patch_wait_ui.zsh
 TERM=xterm-256color zpty -b tool-wait tool_wait_pty_run

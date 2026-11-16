@@ -47,12 +47,12 @@ lib/
   util.zsh              wrapping, truncation, and display helpers
 tests/run.zsh           shell-level unit and integration tests
 tests/benchmark.zsh     opt-in native performance measurements
-vendor/zjson/           pure-Zsh JSON tokenizer, encoding, UTF-8 repair and contexts
+psh bundled zjson       JSON tokenizer, encoding, UTF-8 repair and contexts
 ```
 
 ## Library loading
 
-`lib/json.zsh` loads the pinned public `vendor/zjson/zjson.zsh` entrypoint.
+`lib/json.zsh` loads the zjson entrypoint bundled with psh.
 Generic parsing uses `zjson_*` functions and `ZJSON_*` tokenizer state;
 application codecs retain their `json_parse_*` APIs and `JSON_RESPONSE_*`,
 `JSON_TOOL_*` and `JSON_OBJECT*` results. Tool arguments remain scalar-only.
@@ -79,7 +79,7 @@ cross-library call into an optionally loaded library is guarded with
 wordcode, roughly halving launch time; a stale `.zwc` is ignored by zsh, so
 recompiling is never required for correctness. Compile with the destination
 host's installed Zsh. A successful build on a newer Zsh is not a substitute for
-running the suite under the minimum supported Zsh 5.8 runtime.
+running the suite under the minimum supported psh runtime.
 
 The local TUI paints a `Starting` frame before loading MCP, discovering project
 instructions and skills, opening session storage, or waiting for the relay.
@@ -216,7 +216,7 @@ session policy remain in the parent. The worker receives no dispatcher authority
 `zsh/zpty` supplies an isolated terminal session and process group using native
 Zsh facilities. Its evaluated command is a constant function name; executable
 arguments are inherited as an array. Only an explicitly approved `run_command`
-passes shell source to `zsh -c`.
+passes shell source to `psh -c`.
 
 A startup handshake publishes the worker PID before the parent admits execution.
 Output goes to private files; the worker publishes a completion marker only
@@ -441,7 +441,7 @@ remain compatible and are treated as availability unknown.
 | `replace_text` | Make one contiguous change in one existing file using a unique exact text fragment | Native Zsh matching and confined writes |
 | `apply_patch` | Make several separated changes or changes spanning files using a unified diff | `git apply`, then `patch` fallback |
 | `search` | Find matching files or bounded, grouped snippets | `rg --no-config --no-follow` plus a native Zsh stream collector |
-| `run_command` | Run builds, tests, and diagnostics | Approved `zsh -c` |
+| `run_command` | Run builds, tests, and diagnostics | Approved `psh -c` |
 | `list_agents` | Discover live same-user local peers | Private manifests plus protocol ping |
 | `send_agent_message` | Queue a task for one exact peer | Framed Unix-domain socket request |
 | `discover_skills` | Search omitted Skill metadata when the visible catalog is truncated | Native Zsh matching |

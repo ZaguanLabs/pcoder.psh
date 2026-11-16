@@ -11,7 +11,7 @@ connect_wait() {
 }
 connect_fixture() {
   trap - EXIT INT TERM
-  exec zsh -f "$TEST_DIR/fixtures/mcp_connect_ui.zsh" "$PROJECT_DIR" "$connect_base"
+  exec psh -f "$TEST_DIR/fixtures/mcp_connect_ui.zsh" "$PROJECT_DIR" "$connect_base"
 }
 TERM=xterm-256color zpty -b connect-wait connect_fixture
 connect_wait "$connect_base.started" startup

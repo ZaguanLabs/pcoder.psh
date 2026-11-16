@@ -728,7 +728,7 @@ _ui_copy_transcript() {
   trap 'copy_interrupted=1; return 130' INT
   {
     print -rn -- $'\e[2J\e[H'
-    print -r -- "zcoder.zsh transcript copy view"
+    print -r -- "pcoder.psh transcript copy view"
     print -r -- "Select text with the terminal mouse and use its normal copy shortcut. Scroll as needed."
     print -r -- "Press Enter or Ctrl-C when finished to return to zcoder."
     print -r -- ""
@@ -1133,7 +1133,7 @@ ui_render_messages() {
   UI_RENDER_DIRTY_FROM=0
   if (( count == 0 )); then
     _ui_add_line "" default/default
-    _ui_add_line "  👋 Welcome to zcoder.zsh" "bold cyan/black"
+    _ui_add_line "  👋 Welcome to pcoder.psh" "bold cyan/black"
     _ui_add_line "" default/default
     _ui_add_line "  Ask for a change, investigation, or build. The model can inspect and edit" "dim white/black"
     _ui_add_line "  the workspace with tools. Shell commands always require your approval." "dim white/black"

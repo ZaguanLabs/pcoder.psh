@@ -1,7 +1,7 @@
 diff_ui_run() {
   trap - EXIT INT TERM
   export TERM=xterm-256color ZCODER_COLOR="$diff_policy" NO_COLOR=''
-  exec zsh -df "$TEST_DIR/fixtures/diff_ui.zsh" "$PROJECT_DIR" "$diff_base" "$diff_backend" "$diff_columns"
+  exec psh -df "$TEST_DIR/fixtures/diff_ui.zsh" "$PROJECT_DIR" "$diff_base" "$diff_backend" "$diff_columns"
 }
 typeset -a diff_scenarios=(stock basic 110)
 [[ $resize_backend == bundled ]] && diff_scenarios+=(auto auto 110 auto auto 48 auto mono 110)

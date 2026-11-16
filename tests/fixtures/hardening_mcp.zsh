@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 zmodload zsh/zselect
 IFS= read -r request || exit 1
 print -rn -- '{"jsonrpc":"2.0","id":'

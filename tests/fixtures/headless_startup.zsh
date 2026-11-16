@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env psh
 
 # Exercise real CLI loading in a fresh shell, replacing only the blocking
 # transport entry points and model/approval responses. No listener or Ollama.
