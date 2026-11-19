@@ -33,6 +33,10 @@
     assert_eq '/context:8:0' "$INPUT_BUF:$INPUT_POS:$UI_SLASH_ROWS" 'completion fills the prompt, places the cursor, and closes the list'
     ui_slash_input $'\r' ''
     assert_failure 'Enter after completion returns to normal command dispatch' $?
+    INPUT_BUF='ordinary prompt'; INPUT_POS=${#INPUT_BUF}; ui_slash_update
+    assert_eq '' "$UI_SLASH_BUFFER" 'ordinary drafts release the cached slash query'
+    INPUT_BUF=/context; INPUT_POS=8; ui_slash_update
+    assert_success 'returning to the dismissed prefix after editing reopens suggestions' "$(( UI_SLASH_ROWS > 0 ? 0 : 1 ))"
     INPUT_BUF=/; INPUT_POS=1; ui_slash_update
     INPUT_BUF=/context; INPUT_POS=8; ui_slash_update
     ui_slash_input $'\r' ''

@@ -16,8 +16,8 @@ http_stream_reset() {
 http_stream_feed() {
   emulate -L zsh
   setopt extendedglob nomultibyte
-  local header="" line="" key="" value="" length="" encoding="" part=""
-  local -i take=0
+  local header="" line="" key="" value="" length="" encoding=""
+  local -i take=0 buffered=0
   HTTP_STREAM_OUTPUT=""
   HTTP_STREAM_WIRE+="$1"
   while true; do
@@ -68,13 +68,19 @@ http_stream_feed() {
           [[ "$HTTP_STREAM_STATE" == length ]] && HTTP_STREAM_STATE=done || HTTP_STREAM_STATE=crlf
           continue
         fi
-        take=${#HTTP_STREAM_WIRE}
+        buffered=${#HTTP_STREAM_WIRE}
+        take=$buffered
         (( take > 0 )) || return 0
         [[ "$HTTP_STREAM_STATE" != close ]] && (( take > HTTP_STREAM_LEFT )) && take=$HTTP_STREAM_LEFT
         (( HTTP_STREAM_BYTES+=take ))
         (( HTTP_STREAM_BYTES <= 67108864 )) || { HTTP_ERROR="Ollama stream exceeds 64 MiB"; return 1; }
-        HTTP_STREAM_OUTPUT+="${HTTP_STREAM_WIRE[1,take]}"
-        HTTP_STREAM_WIRE="${HTTP_STREAM_WIRE[$(( take+1 )),-1]}"
+        if (( take == buffered )); then
+          HTTP_STREAM_OUTPUT+="$HTTP_STREAM_WIRE"
+          HTTP_STREAM_WIRE=""
+        else
+          HTTP_STREAM_OUTPUT+="${HTTP_STREAM_WIRE[1,take]}"
+          HTTP_STREAM_WIRE="${HTTP_STREAM_WIRE[take+1,-1]}"
+        fi
         [[ "$HTTP_STREAM_STATE" == close ]] || (( HTTP_STREAM_LEFT-=take ))
         ;;
       crlf)

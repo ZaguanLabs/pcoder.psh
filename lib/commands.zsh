@@ -66,12 +66,13 @@ commands_init() {
 ui_slash_update() {
   emulate -L zsh
   UI_SLASH_ROWS=0
-  if [[ "$INPUT_BUF" != "$UI_SLASH_BUFFER" ]]; then
-    UI_SLASH_BUFFER=$INPUT_BUF; UI_SLASH_DISMISSED=''; UI_SLASH_CACHE_KEY=''
+  local query=''
+  if [[ $INPUT_BUF == /* && $INPUT_BUF != *[[:space:]]* ]]; then query=$INPUT_BUF; fi
+  if [[ $query != "$UI_SLASH_BUFFER" ]]; then
+    UI_SLASH_BUFFER=$query; UI_SLASH_DISMISSED=''; UI_SLASH_CACHE_KEY=''
     UI_SLASH_SELECTED=1
   fi
-  [[ "$UI_FOCUS" == input && "$INPUT_BUF" == /* && "$INPUT_BUF" != *[[:space:]]* &&
-     "$INPUT_BUF" != "$UI_SLASH_DISMISSED" ]] || return 0
+  [[ $UI_FOCUS == input && -n $query && $query != "$UI_SLASH_DISMISSED" ]] || return 0
   (( INPUT_POS == ${#INPUT_BUF} && UI_ACTIVITY_DEPTH == 0 )) || return 0
   local cache_key="$INPUT_BUF:${REMOTE_MODE:-local}:${ZCODER_PROFILE:-coding}:${REMOTE_GOALS_SUPPORTED:-0}:${REMOTE_HARNESS_DISCOVERY_SUPPORTED:-0}:${DELEGATE_AVAILABLE[claude]:-0}:${DELEGATE_AVAILABLE[codex]:-0}:${DELEGATE_AVAILABLE[agy]:-0}:${DELEGATE_AVAILABLE[opencode]:-0}"
   local -i i available=$(( SCREEN_H - TOP_H - FOOT_H - 6 ))

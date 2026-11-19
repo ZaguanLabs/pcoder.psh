@@ -295,21 +295,62 @@ zcoder_clip() {
 zcoder_hard_wrap() { _zcoder_wrap_cells "$1" "${2:-1}" 0; }
 zcoder_wrap() { _zcoder_wrap_cells "$1" "${2:-1}" 1; }
 
+# Only printable ASCII reaches this helper, so a byte is one terminal cell.
+# Bisect long strings at row boundaries to bound the amount scanned by each
+# scalar subscript. Both halves append to the same output arrays in order.
+_zcoder_append_ascii_rows() {
+  local -i width=$2 length=${#1} middle start
+  if (( length <= width )); then
+    ZCODER_WRAPPED+=("$1"); ZCODER_WRAPPED_LENGTHS+=("$length")
+  elif (( length > 4096 && length / width >= 2 )); then
+    middle=$(( length / width / 2 * width ))
+    _zcoder_append_ascii_rows "${1[1,middle]}" "$width"
+    _zcoder_append_ascii_rows "${1[middle+1,-1]}" "$width"
+  else
+    local row
+    for (( start=1; start<=length; start+=width )); do
+      row=${1[start,start+width-1]}
+      ZCODER_WRAPPED+=("$row"); ZCODER_WRAPPED_LENGTHS+=("${#row}")
+    done
+  fi
+}
+
 _zcoder_wrap_cells() {
-  local text="$1" probe="" prefix="" ch=""
-  local -i width=${2:-1} word_wrap=${3:-0} pos=1 total end cells size consumed ascii=0 cut
+  local text="$1" probe="" prefix="" ch="" span=""
+  local -i width=${2:-1} word_wrap=${3:-0} pos=1 total end cells size consumed ascii=0 cut take
   local -a chars=()
   ZCODER_WRAPPED=(); ZCODER_WRAPPED_LENGTHS=()
   (( width < 1 )) && width=1
   [[ -z "$text" ]] && { ZCODER_WRAPPED=(""); ZCODER_WRAPPED_LENGTHS=(0); return 0; }
   [[ "$text" != *[^\ -~]* ]] && ascii=1
-  chars=("${(@s::)text}"); total=${#chars}
+  if (( ascii && ! word_wrap )); then
+    setopt localoptions nomultibyte
+    _zcoder_append_ascii_rows "$text" "$width"
+    return $?
+  fi
+  chars=("${(@s::)text}"); total=${#chars}; consumed=$width
   while (( pos <= total )); do
     if (( ascii )); then
       end=$(( pos + width )); (( end > total + 1 )) && end=$(( total + 1 ))
       probe="${(j::)chars[pos,end-1]}"
     else
       end=$pos; cells=0; probe=""
+      # Use the previous row's character count as a hint. Accept a span only
+      # after measuring its cells. One smaller retry bounds the cost of a miss.
+      if (( consumed >= 8 )); then
+        take=$consumed
+        (( take > total-pos+1 )) && take=$(( total-pos+1 ))
+        repeat 2; do
+          (( take >= 8 )) || break
+          span="${(j::)chars[pos,pos+take-1]}"
+          size=${(m)#span}
+          if (( size <= width )); then
+            probe=$span; cells=$size; end=$(( pos+take ))
+            break
+          fi
+          take=$(( take - (size - width) ))
+        done
+      fi
       while (( end <= total )); do
         ch="${chars[end]}"; size=${(m)#ch}
         if (( cells + size > width )); then

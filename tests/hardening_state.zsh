@@ -148,6 +148,13 @@ hardening_conversation_tests() {
   assert_not_contains "$REPLY" '"input_id"' 'compaction removes local queue receipts'
   assert_contains "$REPLY" '"role":"user","content":"legacy"' 'compaction preserves normalized history contents'
 
+  local nested='{"role":"assistant","tool_calls":[{"function":{"arguments":{"path":"x","input_id":"keep"}}}],"content":"done"}'
+  AGENT_MESSAGES+=("$nested" "${nested%\}},\"input_id\":\"queue-1\"}")
+  agent_history_payload_json 3
+  assert_eq "$nested,$nested" "$REPLY" 'a transport receipt is stripped without truncating nested tool arguments'
+  assert_eq "${nested%\}},\"input_id\":\"queue-1\"}" "$AGENT_MESSAGES[-1]" 'transport normalization preserves the saved receipt'
+  AGENT_MESSAGES[3,-1]=()
+
   local saved_parser="${functions[json_parse_ollama_response]}" saved_schema="${functions[agent_tools_schema_json]}"
   local -i parser_calls=0 schema_calls=0
   functions[_hardening_real_parser]="$saved_parser"

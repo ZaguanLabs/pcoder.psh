@@ -52,8 +52,24 @@ benchmark_paste() {
   [[ "$INPUT_EVENT_ACTION" == paste ]] && (( ${#INPUT_EVENT_TEXT} == count ))
 }
 for benchmark_size in 25000 50000 100000; do
-  benchmark_measure "paste ${benchmark_size} characters" benchmark_paste "$benchmark_size" || exit 1
+  benchmark_measure "legacy paste ${benchmark_size} characters" benchmark_paste "$benchmark_size" || exit 1
 done
+
+# The native terminal delivers one completed paste to the editor.
+benchmark_text=$'\tprint -r -- "hello world"\r\n'
+benchmark_lines=()
+benchmark_expected_lines=()
+repeat 2048; do
+  benchmark_lines+=("$benchmark_text")
+  benchmark_expected_lines+=($'    print -r -- "hello world"\n')
+done
+TERMINAL_EVENT_TEXT="${(j::)benchmark_lines}"
+benchmark_expected="${(j::)benchmark_expected_lines}"
+benchmark_native_paste() {
+  input_decode_terminal_event '' PASTE
+  [[ $INPUT_EVENT_ACTION == paste && $INPUT_EVENT_TEXT == "$benchmark_expected" ]]
+}
+benchmark_measure 'native paste 2048 CRLF code lines' benchmark_native_paste || exit 1
 
 benchmark_quote() { zjson_quote "$benchmark_text"; }
 for benchmark_kind in DEL SOH; do
@@ -124,6 +140,13 @@ benchmark_cached_layout() { input_layout 74 4; return 0; }
 benchmark_measure 'input layout 100000 characters' benchmark_layout || exit 1
 benchmark_measure 'input cached layout 100000 chars' benchmark_cached_layout || exit 1
 
+benchmark_cursor_left() {
+  input_left
+  input_layout 74 4
+  (( INPUT_CURSOR_ROW == INPUT_POS / 74 + 1 && INPUT_CURSOR_COL == INPUT_POS % 74 ))
+}
+benchmark_measure 'cursor left in 100000 chars' benchmark_cursor_left || exit 1
+
 ZCODER_MODEL=benchmark; AGENT_SYSTEM_PROMPT=benchmark; AGENT_CONTEXT_TOOLS='[]'
 benchmark_text="${(pl:1024::x:)}"
 zjson_quote "$benchmark_text"
@@ -137,6 +160,10 @@ benchmark_measure 'context 1000 x 1KiB warm cache' agent_context_bill || exit 1
 benchmark_measure 'history JSON 1000 x 1KiB' agent_history_payload_json || exit 1
 benchmark_payload() { agent_build_payload false '[]'; }
 benchmark_measure 'chat payload 1000 x 1KiB' benchmark_payload || exit 1
+for (( benchmark_index=10; benchmark_index<=1000; benchmark_index+=10 )); do
+  AGENT_MESSAGES[benchmark_index]='{"role":"user","content":"'"$benchmark_text"'","input_id":"queue-id"}'
+done
+benchmark_measure 'chat payload with 100 receipts' benchmark_payload || exit 1
 
 zcoder_curses() { return 0; }
 UI_ACTIVE=1; SCREEN_W=80; SCREEN_H=24; SIDE_W=0; INPUT_H=3; UI_FOCUS=input
@@ -147,3 +174,66 @@ benchmark_redraw() { _ui_paint_chat 1; return 0; }
 benchmark_measure 'cached redraw 1000 events' benchmark_redraw || exit 1
 benchmark_complete_layout() { ui_render_messages 78; return 0; }
 benchmark_measure 'complete layout 1000 events' benchmark_complete_layout || exit 1
+
+# Exercise suffix invalidation through a real stream preview. Keep native
+# Markdown and text measurement when available, and mock terminal I/O only.
+source "$benchmark_root/lib/curses.zsh" || exit 1
+zcoder_curses_load && ui_markdown_init || exit 1
+zcoder_curses() {
+  case $1 in
+    textpolicy|textinfo|textpos) builtin "$ZCODER_CURSES_COMMAND" "$@" ;;
+    *) return 0 ;;
+  esac
+}
+terminal_refresh() { return 0; }
+agent_stream_reset
+AGENT_STREAM_CONTENT=streaming
+agent_stream_preview
+benchmark_stream_delta() {
+  [[ $AGENT_STREAM_CONTENT == streaming ]] && AGENT_STREAM_CONTENT=streamed || AGENT_STREAM_CONTENT=streaming
+  agent_stream_preview
+  [[ ${UI_CONTENTS[-1]} == "$AGENT_STREAM_CONTENT" ]] && (( UI_MARKDOWN_FALLBACKS == 0 ))
+}
+benchmark_measure "stream update 1000 ($UI_MARKDOWN_BACKEND)" benchmark_stream_delta || exit 1
+
+source "$benchmark_root/lib/commands.zsh" || exit 1
+input_reset; input_detect_boundaries
+INPUT_BUF="${(pl:100000::x:)}"; input_end
+ui_calculate_input_height
+benchmark_editor_left() {
+  local -i previous_pos=$INPUT_POS
+  ui_editor_input '' LEFT && (( INPUT_POS == previous_pos - 1 ))
+}
+benchmark_measure 'editor repaint left in 100000 chars' benchmark_editor_left || exit 1
+
+benchmark_editor_insert() {
+  local -i previous_pos=$INPUT_POS
+  ui_editor_input x '' && (( INPUT_POS == previous_pos + 1 ))
+}
+input_end
+input_layout 74 4
+benchmark_measure 'editor append to 100000 chars' benchmark_editor_insert || exit 1
+
+benchmark_editor_prepend() {
+  input_home
+  ui_editor_input x '' && (( INPUT_POS == 1 ))
+}
+for benchmark_kind in single multiline; do
+  benchmark_unit='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 +=/*.;'
+  [[ $benchmark_kind == multiline ]] && benchmark_unit=$'    printf "%s" "$INPUT_BUF" # printable code with spaces\n'
+  INPUT_BUF=${(pl:100000::$benchmark_unit:)}
+  input_home; ui_calculate_input_height
+  benchmark_measure "editor prepend 100000 ($benchmark_kind)" benchmark_editor_prepend || exit 1
+done
+
+# Mixed-width source exercises the shared Unicode wrapper at the editor entry.
+benchmark_unit='const 城市 = "Oslo ✨"; return café + 变量; '
+INPUT_BUF=${(pr:25000::$benchmark_unit:)}
+input_home; ui_calculate_input_height
+benchmark_measure 'editor prepend 25000 (Unicode)' benchmark_editor_prepend || exit 1
+
+# Advance the caret so each timed insertion splices inside the CJK line.
+benchmark_unit='東京都大阪世界你好'
+INPUT_BUF=${(pr:25000::$benchmark_unit:)}
+input_home; ui_calculate_input_height
+benchmark_measure 'editor insert near start 25000 (CJK)' benchmark_editor_insert || exit 1

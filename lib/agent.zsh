@@ -341,16 +341,26 @@ agent_add_context_message() {
 # session cannot violate a strict Ollama chat template.
 agent_history_payload_json() {
   emulate -L zsh
-  local message=""
-  local -a transport_messages=()
+  setopt extendedglob nomultibyte
   local -i start=${1:-1}
+  local system='{"role":"system",' user='{"role":"user",'
+  # A receipt ends the record with a JSON string. A nested input_id in
+  # tool arguments can also precede a final content field and must survive.
+  local receipt='*,"input_id":"([^"\\]|\\?)#"}'
+  local candidate="($system*|$receipt)"
+  # Search the requested array slice for the first record needing a rewrite.
+  if (( ${AGENT_MESSAGES[(ib:start:)$candidate]} > ${#AGENT_MESSAGES} )); then
+    REPLY="${(j:,:)AGENT_MESSAGES[start,-1]}"
+    return 0
+  fi
+  local message
+  local -a transport_messages=()
   for message in "${(@)AGENT_MESSAGES[start,-1]}"; do
-    # Queue receipts are local persistence metadata, not model API fields.
-    if [[ "$message" == *',"input_id":"'*'"}' ]]; then
+    if [[ $message == ${~receipt} ]]; then
       message="${message%,\"input_id\":*}}"
     fi
-    if [[ "$message" == '{"role":"system",'* ]]; then
-      message='{"role":"user",'"${message#\{\"role\":\"system\",}"
+    if [[ $message == "$system"* ]]; then
+      message="$user${message#$system}"
     fi
     transport_messages+=("$message")
   done
@@ -471,42 +481,38 @@ agent_tools_schema_json() {
 }
 
 agent_build_payload() {
-  local model_json="" system_json="" messages="[" history="" think="true" tools="" options="" prompt="" format=""
-  local stream=false
+  local model_json="" system_message="" history="" schema="" options="" prompt="" schema_key=tools
+  local stream=false think=false
   [[ "${1:-false}" == true ]] && stream=true
   # MCP discovery must precede prompt assembly. Besides producing Ollama's
   # schemas, it gives small models an exact short-name -> function-name map.
   if (( $# >= 2 )); then
-    tools="$2"
+    schema="$2"
   else
     agent_tools_schema_json || return $?
-    tools="$REPLY"
-    AGENT_CONTEXT_TOOLS="$tools"
+    schema="$REPLY"
+    AGENT_CONTEXT_TOOLS="$schema"
   fi
   agent_resolve_system_prompt
   prompt="$REPLY"
   zjson_quote "$ZCODER_MODEL"; model_json="$REPLY"
-  zjson_quote "$prompt"; system_json="$REPLY"
-  messages+="{\"role\":\"system\",\"content\":${system_json}}"
-  # Join at C speed; appending message by message re-copies the growing
-  # payload and is quadratic for long histories.
+  zjson_quote "$prompt"; system_message="{\"role\":\"system\",\"content\":${REPLY}}"
   if (( ${#AGENT_MESSAGES} > 0 )); then
     agent_history_payload_json
     history="$REPLY"
-    messages+=",${history}"
+    system_message+=,
   fi
-  messages+="]"
   agent_context_options_json
   options="$REPLY"
   if [[ "${AGENT_TOOL_PHASE:-full}" == routing ]]; then
     agent_route_schema_json
-    format="$REPLY"
-    REPLY="{\"model\":${model_json},\"messages\":${messages},\"format\":${format},\"stream\":false,\"think\":false,\"options\":{${options}\"num_predict\":${ZCODER_MAX_OUTPUT_TOKENS}}}"
-    return 0
+    schema_key=format
+    schema="$REPLY"
+    stream=false
+  else
+    [[ "$ZCODER_THINK" == true ]] && think=true
   fi
-  [[ "$ZCODER_THINK" == true || "$ZCODER_THINK" == false ]] || think="false"
-  [[ "$ZCODER_THINK" == false ]] && think="false"
-  REPLY="{\"model\":${model_json},\"messages\":${messages},\"tools\":${tools},\"stream\":${stream},\"think\":${think},\"options\":{${options}\"num_predict\":${ZCODER_MAX_OUTPUT_TOKENS}}}"
+  REPLY="{\"model\":${model_json},\"messages\":[${system_message}${history}],\"${schema_key}\":${schema},\"stream\":${stream},\"think\":${think},\"options\":{${options}\"num_predict\":${ZCODER_MAX_OUTPUT_TOKENS}}}"
 }
 
 agent_context_refresh_estimate() {

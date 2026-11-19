@@ -77,8 +77,9 @@ HTTP_BODY='alias generation'; HTTP_ERROR='alias error'
 zjson_begin '{"sentinel":43}'
 expected_parser="$ZJSON_SOURCE:$ZJSON_POS:$ZJSON_TOKEN_TYPE:$ZJSON_TOKEN_VALUE"
 fixture_wait_context
-mapfile[$fixture_base.alias_result]="${AGENT_CONTEXT_WINDOW}:${AGENT_CONTEXT_SOURCE}:${AGENT_CONTEXT_DISCOVERY_PENDING}:${HTTP_BODY}:${HTTP_ERROR}"
 mapfile[$fixture_base.alias_parser]="$([[ "$ZJSON_SOURCE:$ZJSON_POS:$ZJSON_TOKEN_TYPE:$ZJSON_TOKEN_VALUE" == "$expected_parser" ]] && print 1)"
+# The parent reads the parser check as soon as it sees the result.
+mapfile[$fixture_base.alias_result]="${AGENT_CONTEXT_WINDOW}:${AGENT_CONTEXT_SOURCE}:${AGENT_CONTEXT_DISCOVERY_PENDING}:${HTTP_BODY}:${HTTP_ERROR}"
 ZCODER_MODEL=fixture; AGENT_CONTEXT_MODEL=fixture; AGENT_CONTEXT_SOURCE=allocation
 AGENT_CONTEXT_WINDOW=98304
 

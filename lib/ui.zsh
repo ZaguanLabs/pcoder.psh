@@ -43,9 +43,10 @@ typeset -ga UI_ASSISTANT_GROUPS=()
 typeset -ga UI_LINES=() UI_ATTRS=() UI_LINE_NATIVE=()
 typeset -ga UI_LINE_SEGMENT_STARTS=() UI_LINE_SEGMENT_COUNTS=()
 typeset -ga UI_SEGMENT_TEXTS=() UI_SEGMENT_ATTRS=()
+typeset -g UI_PAINTED_INPUT=''
 typeset -gA UI_WINDOW_KEYS=() UI_DIRTY_WINDOWS=() UI_PENDING_WINDOWS=()
 
-# Cache each window's small input state, never a second terminal cell buffer.
+# Each window key describes its geometry and display state.
 # Transcript content is tracked by its existing generation/count/dirty cursor.
 ui_invalidate() {
   local name=""
@@ -68,13 +69,16 @@ _ui_window_key() {
         fields+=("$UI_TRANSCRIPT_GENERATION" "${#UI_ROLES}" "$UI_RENDER_CACHE_KEY" "$ZCODER_MODEL" "$UI_SELECTED_EVENT" "$UI_SCROLL" "$UI_AUTO_SCROLL")
       fi
       ;;
-    input) fields+=("$UI_FOCUS" "$INPUT_BUF" "$INPUT_POS" "$INPUT_VIEW_TOP" "$(( UI_ACTIVITY_DEPTH > 0 ))" "$UI_SLASH_ROWS" "$UI_SLASH_SELECTED" "${UI_SLASH_CACHE_KEY:-}") ;;
+    input)
+      fields+=("$UI_FOCUS" "$INPUT_POS" "$INPUT_VIEW_TOP" "$(( UI_ACTIVITY_DEPTH > 0 ))" "$UI_SLASH_ROWS" "$UI_SLASH_SELECTED")
+      (( UI_SLASH_ROWS )) && fields+=("${UI_SLASH_CACHE_KEY:-}")
+      ;;
     footer)
       fields+=("$UI_FOCUS" "$(( UI_ACTIVITY_DEPTH > 0 ))" "${zdraw_text_selection[selected]:-0}")
       if (( $+functions[tasks_summary] )); then tasks_summary; fields+=("$REPLY"); fi
       ;;
   esac
-  # Quoting each field preserves boundaries even in multiline drafts/titles.
+  # Quoting each field preserves boundaries even in multiline titles.
   REPLY="${(j: :)${(@q)fields}}"
 }
 
@@ -92,6 +96,11 @@ _ui_draw_window() {
     ui_selection_cancel
   fi
   [[ "$name" == chat ]] && (( UI_DOCUMENT_TAB == 3 && (UI_RENDER_DIRTY_FROM > 0 || UI_REVEAL_SELECTED) )) && dirty=1
+  # Compare the draft verbatim so a cursor move never quotes the whole buffer.
+  if [[ $name == input && $INPUT_BUF != "$UI_PAINTED_INPUT" ]]; then
+    UI_PAINTED_INPUT=$INPUT_BUF
+    dirty=1
+  fi
   _ui_window_key "$name"
   if (( dirty )) || [[ "${UI_WINDOW_KEYS[$name]:-}" != "$REPLY" ]]; then
     "_ui_paint_${name}" 1
@@ -1163,17 +1172,20 @@ _ui_paint_chat() {
     ui_render_messages "$inner_w"
   else
     if (( UI_RENDER_DIRTY_FROM > 0 && UI_RENDER_DIRTY_FROM <= UI_RENDER_COUNT )); then
-      local -i keep_lines=$(( UI_MESSAGE_STARTS[UI_RENDER_DIRTY_FROM] - 1 ))
-      local -i keep_segments=$(( UI_MESSAGE_SEGMENT_STARTS[UI_RENDER_DIRTY_FROM] - 1 ))
-      UI_LINES=("${(@)UI_LINES[1,keep_lines]}"); UI_ATTRS=("${(@)UI_ATTRS[1,keep_lines]}")
-      UI_LINE_NATIVE=("${(@)UI_LINE_NATIVE[1,keep_lines]}")
-      UI_COPY_TEXTS=("${(@)UI_COPY_TEXTS[1,keep_lines]}")
-      UI_COPY_COLUMNS=("${(@)UI_COPY_COLUMNS[1,keep_lines]}")
-      UI_COPY_GAPS=("${(@)UI_COPY_GAPS[1,keep_lines]}")
-      UI_LINE_SEGMENT_STARTS=("${(@)UI_LINE_SEGMENT_STARTS[1,keep_lines]}")
-      UI_LINE_SEGMENT_COUNTS=("${(@)UI_LINE_SEGMENT_COUNTS[1,keep_lines]}")
-      UI_SEGMENT_TEXTS=("${(@)UI_SEGMENT_TEXTS[1,keep_segments]}")
-      UI_SEGMENT_ATTRS=("${(@)UI_SEGMENT_ATTRS[1,keep_segments]}")
+      # Discard only the stale suffix. Expanding the retained prefix of every
+      # array copies the entire transcript on each streamed update.
+      local -i first_line=$(( UI_MESSAGE_STARTS[UI_RENDER_DIRTY_FROM] ))
+      local -i first_segment=$(( UI_MESSAGE_SEGMENT_STARTS[UI_RENDER_DIRTY_FROM] ))
+      UI_LINES[first_line,-1]=()
+      UI_ATTRS[first_line,-1]=()
+      UI_LINE_NATIVE[first_line,-1]=()
+      UI_COPY_TEXTS[first_line,-1]=()
+      UI_COPY_COLUMNS[first_line,-1]=()
+      UI_COPY_GAPS[first_line,-1]=()
+      UI_LINE_SEGMENT_STARTS[first_line,-1]=()
+      UI_LINE_SEGMENT_COUNTS[first_line,-1]=()
+      UI_SEGMENT_TEXTS[first_segment,-1]=()
+      UI_SEGMENT_ATTRS[first_segment,-1]=()
       UI_RENDER_COUNT=$(( UI_RENDER_DIRTY_FROM - 1 ))
     fi
     for (( render_index=UI_RENDER_COUNT+1; render_index<=message_count; render_index++ )); do

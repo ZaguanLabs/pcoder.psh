@@ -41,6 +41,13 @@ ui_editor_input x ''
 assert_contains "${(F)MOCK_ZCURSES_CALLS}" 'clear input_win' "typing repaints the editor"
 assert_not_contains "${(F)MOCK_ZCURSES_CALLS}" 'clear chat_win' "typing within a visual row leaves the transcript untouched"
 MOCK_ZCURSES_CALLS=()
+INPUT_BUF='*'
+ui_draw_input
+assert_contains "${(F)MOCK_ZCURSES_CALLS}" 'string input_win *' 'a same-length draft replacement repaints at the same cursor position'
+MOCK_ZCURSES_CALLS=()
+ui_draw_input
+assert_eq 0 "${#MOCK_ZCURSES_CALLS}" 'an unchanged literal glob in the draft reuses the painted window'
+MOCK_ZCURSES_CALLS=()
 ui_invalidate
 ui_refresh_all
 assert_contains "${(F)MOCK_ZCURSES_CALLS}" 'clear chat_win' "explicit invalidation restores obscured windows"

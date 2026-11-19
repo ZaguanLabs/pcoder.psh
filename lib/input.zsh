@@ -13,7 +13,7 @@ typeset -g INPUT_TERM_STATE="normal" INPUT_ESCAPE_BUF="" INPUT_PASTE_BUF=""
 typeset -gF INPUT_ESCAPE_AT=0.0
 typeset -ga INPUT_PASTE_CHUNKS=()
 typeset -g INPUT_LAYOUT_BUFFER=""
-typeset -gi INPUT_LAYOUT_WIDTH=-1 INPUT_LAYOUT_POS=-1
+typeset -gi INPUT_LAYOUT_WIDTH=-1 INPUT_LAYOUT_POS=-1 INPUT_LAYOUT_ROWS=0
 typeset -g INPUT_EVENT_ACTION="" INPUT_EVENT_TEXT=""
 typeset -gi INPUT_GRAPHEME=0
 
@@ -36,7 +36,7 @@ input_detect_boundaries() {
 _input_grapheme_bounds() {
   (( INPUT_GRAPHEME )) && [[ -o multibyte ]] || return 1
   emulate -L zsh
-  local -i at=$1 line_start byte_offset unit_start unit_end
+  local -i at=$1 line_start=0 byte_offset unit_start unit_end
   (( at >= 0 && at < ${#INPUT_BUF} )) || return 1
   [[ ${INPUT_BUF[at+1]} != $'\n' ]] || return 1
   if [[ ${INPUT_BUF[at+1]} == [\ -~] ]] &&
@@ -44,10 +44,13 @@ _input_grapheme_bounds() {
      { (( at+1 == ${#INPUT_BUF} )) || [[ ${INPUT_BUF[at+2]} == [\ -~] ]]; }; then
     return 1
   fi
-  local prefix="${INPUT_BUF[1,at]}" suffix="${INPUT_BUF[at+1,-1]}" line
-  prefix=${prefix##*$'\n'}
-  line_start=$(( at - ${#prefix} ))
-  line="$prefix${suffix%%$'\n'*}"
+  local prefix="${INPUT_BUF[1,at]}" line="$INPUT_BUF"
+  if [[ $line == *$'\n'* ]]; then
+    local suffix="${INPUT_BUF[at+1,-1]}"
+    prefix=${prefix##*$'\n'}
+    line_start=$(( at - ${#prefix} ))
+    line="$prefix${suffix%%$'\n'*}"
+  fi
   # ASCII keystrokes need no native query. A space sentinel gives leading
   # combining marks a printable base without changing the original buffer.
   [[ $line == *[^\ -~]* ]] || return 1
@@ -76,7 +79,7 @@ _input_snap_forward() {
 
 _input_remove_range() {
   local -i first=$1 last=$2
-  INPUT_BUF="${INPUT_BUF[1,first]}${INPUT_BUF[last+1,-1]}"
+  INPUT_BUF[first+1,last]=""
   INPUT_POS=$first
   _input_snap_forward
   INPUT_GOAL_COL=-1
@@ -107,7 +110,8 @@ input_insert() {
   elif (( INPUT_POS >= ${#INPUT_BUF} )); then
     INPUT_BUF+="$ch"
   else
-    INPUT_BUF="${INPUT_BUF[1,INPUT_POS]}${ch}${INPUT_BUF[INPUT_POS+1,-1]}"
+    # Assign to the empty character range at the caret.
+    INPUT_BUF[INPUT_POS+1,INPUT_POS]=$ch
   fi
   (( INPUT_POS += ${#ch} ))
   _input_snap_forward
@@ -180,41 +184,81 @@ input_layout() {
   (( width < 1 )) && width=1
   (( max_rows < 1 )) && max_rows=1
 
-  if (( width == INPUT_LAYOUT_WIDTH && INPUT_POS == INPUT_LAYOUT_POS )) &&
-     [[ "$INPUT_BUF" == "$INPUT_LAYOUT_BUFFER" ]]; then
-    _input_layout_viewport "$max_rows"
-    return 0
+  if (( width != INPUT_LAYOUT_WIDTH )) || [[ "$INPUT_BUF" != "$INPUT_LAYOUT_BUFFER" ]]; then
+    _input_wrap_buffer "$width"
   fi
-  INPUT_LAYOUT_BUFFER="$INPUT_BUF"; INPUT_LAYOUT_WIDTH=$width
-  INPUT_LAYOUT_POS=$INPUT_POS
-  INPUT_VISUAL_LINES=(); INPUT_VISUAL_STARTS=(); INPUT_VISUAL_LENGTHS=()
-  INPUT_CURSOR_ROW=1; INPUT_CURSOR_COL=0
-  local -a logical_lines=("${(@ps:\n:)INPUT_BUF}")
-  local line="" segment="" prefix=""
-  local -i length=${#INPUT_BUF} row=0 offset=0 i segment_length k
-  for line in "${logical_lines[@]}"; do
-    zcoder_hard_wrap "$line" "$width"
-    for (( i=1; i<=${#ZCODER_WRAPPED}; i++ )); do
-      segment="${ZCODER_WRAPPED[i]}"; segment_length=${ZCODER_WRAPPED_LENGTHS[i]}
-      (( row++ ))
-      INPUT_VISUAL_LINES+=("$segment"); INPUT_VISUAL_STARTS+=("$offset")
+  if (( INPUT_POS != INPUT_LAYOUT_POS )); then
+    _input_place_cursor
+  fi
+  _input_layout_viewport "$max_rows"
+  return 0
+}
+
+_input_wrap_buffer() {
+  local -i width=$1 offset=0 segment_length first_row=$(( INPUT_CURSOR_ROW - 1 ))
+  local line text
+  if (( width == INPUT_LAYOUT_WIDTH && first_row > 1 )); then
+    # Start one row before the previous caret. A deletion or narrower glyph
+    # at a soft wrap can move text onto the preceding row.
+    offset=$(( INPUT_VISUAL_STARTS[first_row] ))
+    # Drafts can also be replaced directly. Check through the first character
+    # of the proposed row so the wrap *into* that row is still valid.
+    [[ "${INPUT_BUF[1,offset+1]}" == "${INPUT_LAYOUT_BUFFER[1,offset+1]}" ]] || offset=0
+  fi
+  if (( offset > 0 )); then
+    INPUT_VISUAL_LINES[first_row,-1]=()
+    INPUT_VISUAL_STARTS[first_row,-1]=()
+    INPUT_VISUAL_LENGTHS[first_row,-1]=()
+    text=${INPUT_BUF[offset+1,-1]}
+  else
+    INPUT_VISUAL_LINES=(); INPUT_VISUAL_STARTS=(); INPUT_VISUAL_LENGTHS=()
+    text=$INPUT_BUF
+  fi
+  for line in "${(@ps:\n:)text}"; do
+    # Most source lines already fit. Record their geometry directly.
+    if (( ${(m)#line} <= width )); then
+      segment_length=${#line}
+      INPUT_VISUAL_LINES+=("$line"); INPUT_VISUAL_STARTS+=("$offset")
       INPUT_VISUAL_LENGTHS+=("$segment_length")
-      if (( INPUT_POS >= offset && INPUT_POS <= offset + segment_length )); then
-        k=$(( INPUT_POS - offset ))
-        prefix="${segment[1,k]}"
-        INPUT_CURSOR_ROW=$row; INPUT_CURSOR_COL=${(m)#prefix}
-      fi
+      (( offset += segment_length + 1 ))
+      continue
+    fi
+    zcoder_hard_wrap "$line" "$width"
+    INPUT_VISUAL_LINES+=("${ZCODER_WRAPPED[@]}")
+    INPUT_VISUAL_LENGTHS+=("${ZCODER_WRAPPED_LENGTHS[@]}")
+    for segment_length in "${ZCODER_WRAPPED_LENGTHS[@]}"; do
+      INPUT_VISUAL_STARTS+=("$offset")
       (( offset += segment_length ))
     done
     (( offset++ )) # A logical newline occupies one original character.
   done
-  # Keep an end cursor off the border after a completely filled final row.
-  if (( length > 0 && INPUT_POS == length && INPUT_CURSOR_COL == width )); then
-    INPUT_VISUAL_LINES+=(""); INPUT_VISUAL_STARTS+=("$length"); INPUT_VISUAL_LENGTHS+=(0)
-    (( row++ )); INPUT_CURSOR_ROW=$row; INPUT_CURSOR_COL=0
-  fi
+  INPUT_LAYOUT_BUFFER=$INPUT_BUF; INPUT_LAYOUT_WIDTH=$width
+  INPUT_LAYOUT_ROWS=${#INPUT_VISUAL_LINES}; INPUT_LAYOUT_POS=-1
+}
 
-  _input_layout_viewport "$max_rows"
+_input_place_cursor() {
+  local -i first=1 last=$INPUT_LAYOUT_ROWS mid chars
+  local segment prefix
+  # At a soft-wrap boundary the next row owns the caret. A hard newline
+  # leaves one character between successive starts, so it stays on its row.
+  while (( first < last )); do
+    mid=$(( (first + last + 1) / 2 ))
+    if (( INPUT_VISUAL_STARTS[mid] <= INPUT_POS )); then first=$mid
+    else last=$(( mid - 1 )); fi
+  done
+  chars=$(( INPUT_POS - INPUT_VISUAL_STARTS[first] ))
+  segment=${INPUT_VISUAL_LINES[first]}
+  prefix=${segment[1,chars]}
+  INPUT_CURSOR_ROW=$first; INPUT_CURSOR_COL=${(m)#prefix}
+  # Only an end caret on a full final row needs a temporary blank row.
+  if (( first == INPUT_LAYOUT_ROWS && chars == INPUT_VISUAL_LENGTHS[first] &&
+        INPUT_CURSOR_COL == INPUT_LAYOUT_WIDTH )); then
+    INPUT_VISUAL_LINES+=(""); INPUT_VISUAL_STARTS+=("$INPUT_POS"); INPUT_VISUAL_LENGTHS+=(0)
+    (( INPUT_CURSOR_ROW++ )); INPUT_CURSOR_COL=0
+  elif (( ${#INPUT_VISUAL_LINES} > INPUT_LAYOUT_ROWS )); then
+    INPUT_VISUAL_LINES[-1]=(); INPUT_VISUAL_STARTS[-1]=(); INPUT_VISUAL_LENGTHS[-1]=()
+  fi
+  INPUT_LAYOUT_POS=$INPUT_POS
 }
 
 # A height-only change reuses wrapping and cursor geometry.
@@ -262,9 +306,16 @@ input_decode_terminal_event() {
       INPUT_TERM_STATE=normal; INPUT_ESCAPE_BUF=''
       if [[ $key == PASTE ]]; then
         zjson_utf8_repair "${TERMINAL_EVENT_TEXT:-}"
-        INPUT_EVENT_TEXT=${REPLY//$'\r\n'/$'\n'}
-        INPUT_EVENT_TEXT=${INPUT_EVENT_TEXT//$'\r'/$'\n'}
-        INPUT_EVENT_TEXT=${INPUT_EVENT_TEXT//$'\t'/    }
+        # Split/join processes all separators in one pass per normalization.
+        # Quoted (@) preserves empty fields at the edges and between tabs.
+        INPUT_EVENT_TEXT=$REPLY
+        if [[ $INPUT_EVENT_TEXT == *$'\r'* ]]; then
+          INPUT_EVENT_TEXT="${(pj:\n:)${(@ps:\r\n:)INPUT_EVENT_TEXT}}"
+          INPUT_EVENT_TEXT="${(pj:\n:)${(@ps:\r:)INPUT_EVENT_TEXT}}"
+        fi
+        if [[ $INPUT_EVENT_TEXT == *$'\t'* ]]; then
+          INPUT_EVENT_TEXT="${(j:    :)${(@ps:\t:)INPUT_EVENT_TEXT}}"
+        fi
         # Prompt text may contain newlines, but no other terminal controls.
         INPUT_EVENT_TEXT=${INPUT_EVENT_TEXT//[$'\x00'-$'\x09'$'\x0b'-$'\x1f'$'\x7f']/}
         INPUT_EVENT_ACTION=paste

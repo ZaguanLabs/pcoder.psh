@@ -51,15 +51,63 @@ _hardening_input_tests() {
       done
     done
   done
+  text=$'abcdefgh\u0301界界界界\u0301Z'
+  zcoder_hard_wrap "$text" 8
+  assert_eq $'abcdefgh\u0301|界界界界\u0301|Z' "${(j:|:)ZCODER_WRAPPED}" 'zero-width marks stay on full rows after measuring spans'
+  assert_eq '9 5 1' "${ZCODER_WRAPPED_LENGTHS[*]}" 'Unicode hard wraps retain source character counts'
+  zcoder_wrap 'abcd ef界 pqrs' 8
+  assert_eq 'abcd|ef界|pqrs' "${(j:|:)ZCODER_WRAPPED}" 'word wrapping honors spaces after a span exceeds the row width'
+  assert_eq '5 4 4' "${ZCODER_WRAPPED_LENGTHS[*]}" 'word-wrap source lengths include skipped spaces'
+  # A split inside an ASCII line must land on the same row boundary at
+  # every recursion depth, even when the last row is partial.
+  text=${(pl:17317::abc *? 09:)}
+  zcoder_hard_wrap "$text" 74
+  assert_eq "$text" "${(j::)ZCODER_WRAPPED}" 'long hard wraps preserve every character in order'
+  assert_eq 235 "${#ZCODER_WRAPPED}" 'long hard wraps create only the required rows'
+  assert_eq 1 "${ZCODER_WRAPPED_LENGTHS[-1]}" 'the final partial row reports its source length'
+  local -i row full_rows=0
+  for (( row=1; row<${#ZCODER_WRAPPED}; row++ )); do
+    (( ${#ZCODER_WRAPPED[row]} == 74 && ZCODER_WRAPPED_LENGTHS[row] == 74 )) && (( ++full_rows ))
+  done
+  assert_eq 234 "$full_rows" 'every internal row spans the full width'
   # Count expensive layout construction, including the two UI entry points.
   functions[_hardening_real_wrap]="${functions[zcoder_hard_wrap]}"
   local -i hardening_wrap_calls=0
-  zcoder_hard_wrap() { (( hardening_wrap_calls++ )); _hardening_real_wrap "$@"; }
+  local wrapped_input=''
+  zcoder_hard_wrap() {
+    (( hardening_wrap_calls++ ))
+    wrapped_input=$1
+    _hardening_real_wrap "$@"
+  }
   input_reset; INPUT_BUF='cached layout'; INPUT_POS=13
-  input_layout 74 4; input_layout 74 1; input_layout 74 4
+  input_layout 10 4; input_layout 10 1; input_layout 10 4
   assert_eq 1 "$hardening_wrap_calls" 'identical layout requests reuse cached geometry'
-  INPUT_POS=12; input_layout 74 4
-  assert_eq 2 "$hardening_wrap_calls" 'cursor movement invalidates the layout result'
+  INPUT_POS=12; input_layout 10 4
+  assert_eq 1 "$hardening_wrap_calls" 'cursor movement reuses wrapped rows'
+  assert_eq 2 "$INPUT_CURSOR_COL" 'cursor movement updates the cached column'
+  INPUT_BUF='abcd'; INPUT_POS=4; input_layout 2 1
+  assert_eq '3:0:3:3' "$INPUT_CURSOR_ROW:$INPUT_CURSOR_COL:${#INPUT_VISUAL_LINES}:$INPUT_VIEW_TOP" 'end caret on a full row gets a blank viewport row'
+  input_left; input_layout 2 1
+  assert_eq '2:1:2:2' "$INPUT_CURSOR_ROW:$INPUT_CURSOR_COL:${#INPUT_VISUAL_LINES}:$INPUT_VIEW_TOP" 'leaving the end caret removes its blank row'
+  input_left; input_layout 2 1
+  assert_eq '2:0' "$INPUT_CURSOR_ROW:$INPUT_CURSOR_COL" 'a soft-wrap boundary belongs to the following row'
+  input_end; input_layout 2 1
+  assert_eq 3 "${#INPUT_VISUAL_LINES}" 'returning to the end restores exactly one blank row'
+  assert_eq 2 "$hardening_wrap_calls" 'end-row transitions reuse the same wrap'
+  INPUT_BUF=$'ab\n'; INPUT_POS=2; input_layout 2 1
+  assert_eq '1:2:2' "$INPUT_CURSOR_ROW:$INPUT_CURSOR_COL:${#INPUT_VISUAL_LINES}" 'a hard newline belongs to the preceding row'
+  input_end; input_layout 2 1
+  assert_eq '2:0:2' "$INPUT_CURSOR_ROW:$INPUT_CURSOR_COL:${#INPUT_VISUAL_LINES}" 'a trailing newline already supplies an empty row'
+  INPUT_BUF='abcdefghijkl'; input_end; input_layout 2 3
+  input_insert m; input_layout 2 3
+  assert_eq 'klm' "$wrapped_input" 'appending after a full row wraps only the affected tail'
+  assert_eq 'ab|cd|ef|gh|ij|kl|m' "${(j:|:)INPUT_VISUAL_LINES}" 'appending replaces the temporary end-caret row'
+  INPUT_BUF='ab界x123456'; INPUT_POS=5; input_layout 3 3
+  INPUT_BUF='abcx123456'; input_layout 3 3
+  assert_eq 'abc|x12|345|6' "${(j:|:)INPUT_VISUAL_LINES}" 'a narrower replacement at the reuse boundary can fill the preceding row'
+  input_end; input_layout 3 3
+  input_home; input_insert '*'; input_end; input_insert '?'; input_layout 3 3
+  assert_eq '*ab|cx1|234|56?|' "${(j:|:)INPUT_VISUAL_LINES}" 'edits at both ends before repaint rebuild stale earlier rows'
   functions[zcoder_hard_wrap]="${functions[_hardening_real_wrap]}"
   unfunction _hardening_real_wrap
   input_reset

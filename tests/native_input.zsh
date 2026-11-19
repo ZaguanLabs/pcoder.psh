@@ -109,6 +109,9 @@
     assert_eq paste "$INPUT_EVENT_ACTION" 'the editor recognizes the completed native paste'
     assert_eq $'y\né\n    end' "$INPUT_EVENT_TEXT" 'native paste normalizes CRLF, expands tabs, and strips terminal controls'
     assert_eq 0:0 "$TERMINAL_PASTE_BYTES:${#TERMINAL_PASTE_CHUNKS}" 'completed paste releases its bounded accumulator'
+    TERMINAL_EVENT_TEXT=$'\r\n\r\n\t\tA\r\r'
+    input_decode_terminal_event '' PASTE
+    assert_eq $'\n\n        A\n\n' "$INPUT_EVENT_TEXT" 'native paste preserves adjacent and edge separators'
     next_record=(type character text x)
     terminal_read_event input_win ch key mouse
     assert_eq x:: "$ch:$key:$TERMINAL_EVENT_TEXT" 'the next ordinary event cannot replay a paste payload'
