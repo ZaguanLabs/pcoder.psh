@@ -82,6 +82,37 @@ check contains "$REPLY" accepted
 check equal "${mapfile[$REMOTE_RUNTIME_DIR/worker.done]}" 0
 _remote_server_reap_worker
 
+# Poll the same public endpoint as a web client after losing a turn worker.
+zf_rm "$scratch/started"
+check _remote_server_start_turn OLD_REQUEST '' 1 lost
+check wait_file "$scratch/started"
+worker_pid=${mapfile[$scratch/started]}
+kill -KILL "$worker_pid" || fail 'could not interrupt fixture worker'
+typeset -F reap_deadline=$(( EPOCHREALTIME + 5 ))
+while kill -0 "$worker_pid" 2>/dev/null; do
+  (( EPOCHREALTIME < reap_deadline )) || fail 'fixture worker survived'
+  zselect -t 1
+done
+typeset -i cursor=0 errors=0 completions=0
+REMOTE_REQUEST_METHOD=GET
+while true; do
+  REMOTE_REQUEST_TARGET="/v1/events?after=$cursor"
+  _remote_server_dispatch_request ''
+  check json_parse_flat_object "$response"
+  [[ ${JSON_OBJECT[event]} == none ]] && break
+  (( JSON_OBJECT[seq] > cursor )) || fail 'event cursor did not advance'
+  cursor=${JSON_OBJECT[seq]}
+  if [[ ${JSON_OBJECT[role]:-} == error ]]; then
+    (( errors++ ))
+  elif [[ ${JSON_OBJECT[event]} == complete ]]; then
+    check equal "$errors" 1
+    check equal "${JSON_OBJECT[exit_code]}" 137
+    (( completions++ ))
+  fi
+done
+check equal "$completions" 1
+[[ ! -f "$REMOTE_RUNTIME_DIR/active.pid" ]] || fail 'failed turn still active'
+
 # No queued input for this turn means an ordinary stop, even with stale input.
 zf_rm "$scratch/started"
 check _remote_server_start_turn OLD_REQUEST '' 1 empty

@@ -12,7 +12,7 @@ zmodload zsh/datetime zsh/files zsh/mapfile zsh/net/tcp zsh/system zsh/zselect |
 }
 
 typeset -gr ZCODER_NAME="pcoder.psh"
-typeset -gr ZCODER_VERSION="0.25.0"
+typeset -gr ZCODER_VERSION="0.25.1"
 
 typeset -gr ZCODER_DIR="${0:A:h}"
 

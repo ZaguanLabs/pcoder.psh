@@ -127,19 +127,33 @@ _remote_http_read_request() {
 _remote_server_reap_worker() {
   local pid="${mapfile[$REMOTE_RUNTIME_DIR/active.pid]:-}"
   local CURRENT_SESSION_ID="$REMOTE_SESSION_ID" INPUT_QUEUE_TURN_ID="$REMOTE_TURN_ID"
-  if [[ -f "$REMOTE_RUNTIME_DIR/worker.done" && "$pid" == <1-> ]]; then
-    wait "$pid" 2>/dev/null || true
-    input_queue_close true || true
-    zf_rm -f "$REMOTE_RUNTIME_DIR/active.pid" "$REMOTE_RUNTIME_DIR/worker.done" 2>/dev/null
-  elif [[ -n "$pid" ]] && ! kill -0 "$pid" 2>/dev/null; then
-    input_queue_close true || true
-    zf_rm -f "$REMOTE_RUNTIME_DIR/active.pid" 2>/dev/null
+  local exit_code=0
+  [[ "$pid" == <1-> ]] || return 0
+  if [[ ! -f "$REMOTE_RUNTIME_DIR/worker.done" ]] && kill -0 "$pid" 2>/dev/null; then
+    return 0
   fi
+  wait "$pid" 2>/dev/null || exit_code=$?
+  if [[ -f "$REMOTE_RUNTIME_DIR/worker.done" ]]; then
+    exit_code="${mapfile[$REMOTE_RUNTIME_DIR/worker.done]:-1}"
+    [[ "$exit_code" == <0-255> ]] || exit_code=1
+  else
+    zcoder_debug remote_worker_exit "turn=$REMOTE_TURN_ID pid=$pid status=$exit_code"
+    remote_server_emit_message error "The remote turn worker exited before finishing (status $exit_code)."
+    (( exit_code )) || exit_code=1
+  fi
+  # Only the listener publishes completion. Even a worker that dies between
+  # model output and session save must release a polling client's busy state.
+  _remote_server_publish_json "{\"event\":\"complete\",\"exit_code\":${exit_code}}" || return 1
+  input_queue_close true || true
+  zf_rm -f "$REMOTE_RUNTIME_DIR/active.pid" "$REMOTE_RUNTIME_DIR/worker.done" "$REMOTE_RUNTIME_DIR/pending_approval" 2>/dev/null
 }
 
 _remote_server_turn_worker() {
   local prompt="$1" session_id="$2" connection_fd="${3:-}" structured_events="${4:-0}" queued_continuation="${5:-0}" exit_code=0
   local AGENT_OPEN_DOCUMENTS="${6:-}"
+  # Headless launchers may discard stderr. Keep shell and module diagnostics
+  # alongside the request trace when the operator has enabled debug logging.
+  if (( ZCODER_DEBUG_ACTIVE )); then exec 2>&$ZCODER_DEBUG_FD; fi
   trap 'mcp_shutdown_all >/dev/null 2>&1 || true' EXIT
   trap 'exit 130' INT TERM HUP
   _http_close_inherited_fds "$REMOTE_LISTEN_FD" "$connection_fd" "${(@k)REMOTE_CONNECTION_PHASE}"
@@ -153,7 +167,6 @@ _remote_server_turn_worker() {
   STATE_ENABLED=0
   state_load_session "$session_id" || {
     remote_server_emit_message error "Could not load the remote session."
-    _remote_server_publish_json '{"event":"complete","exit_code":1}'
     mapfile[$REMOTE_RUNTIME_DIR/worker.done]="1"
     return 1
   }
@@ -189,7 +202,6 @@ _remote_server_turn_worker() {
     agent_user_turn "$prompt" || exit_code=$?
   fi
   state_save_session || true
-  _remote_server_publish_json "{\"event\":\"complete\",\"exit_code\":${exit_code}}"
   mapfile[$REMOTE_RUNTIME_DIR/worker.done]="$exit_code"
   return "$exit_code"
 }
@@ -259,12 +271,17 @@ _remote_server_cancel_turn() {
     fi
   fi
   input_queue_close true || true
+  if [[ -f "$REMOTE_RUNTIME_DIR/worker.done" ]]; then
+    # The worker finished while the cancellation was in flight.
+    _remote_server_reap_worker
+    return $?
+  fi
   # The stopped worker's latest generation is authoritative. Publish the goal
   # update through a detached loader/save so listener state stays untouched.
   state_pause_saved_goal "$REMOTE_SESSION_ID" 'remote goal execution stopped by user' ||
     remote_server_emit_message error 'Remote work stopped, but the paused goal could not be saved.'
   zf_rm -f "$REMOTE_RUNTIME_DIR/active.pid" "$REMOTE_RUNTIME_DIR/pending_approval" 2>/dev/null
-  if [[ "$continue_queued" == true && ! -f "$REMOTE_RUNTIME_DIR/worker.done" ]]; then
+  if [[ "$continue_queued" == true ]]; then
     input_queue_close
     queue_result=$?
     if (( queue_result == 1 )) && input_queue_open "$REMOTE_SESSION_ID" "$REMOTE_TURN_ID"; then
@@ -282,11 +299,8 @@ _remote_server_cancel_turn() {
       return 0
     fi
   fi
-  if [[ ! -f "$REMOTE_RUNTIME_DIR/worker.done" ]]; then
-    remote_server_emit_status "Stopped"
-    _remote_server_publish_json '{"event":"complete","exit_code":130}'
-  fi
-  zf_rm -f "$REMOTE_RUNTIME_DIR/worker.done" 2>/dev/null
+  remote_server_emit_status "Stopped"
+  _remote_server_publish_json '{"event":"complete","exit_code":130}'
 }
 
 _remote_server_hello_json() {
